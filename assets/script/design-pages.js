@@ -117,8 +117,8 @@ async function gamePage(){
       if(currentUser)launch.addEventListener('click',async e=>{
         e.preventDefault();
         const opened=window.open('about:blank','_blank');
-        const {error}=await supabase.from('play_history').insert({user_id:currentUser.id,game_id:game.id});
-        if(error)console.warn('Could not save play history:',error.message);
+        const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
+        if(settingsRow?.settings?.save_history!==false){const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});if(error)console.warn('Could not save play history:',error.message)}
         if(opened){opened.opener=null;opened.location.replace(gameUrl)}
         else location.href=gameUrl;
       });
