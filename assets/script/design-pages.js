@@ -22,7 +22,7 @@ function gameCard(g){
   a.href=gameHref(g);
   a.className='group block rounded-2xl overflow-hidden bg-light-surface-container-lowest border border-light-outline-variant/40 hover:shadow-lg transition';
   a.innerHTML='<div class="aspect-[16/10] bg-section-turquoise/40 flex items-center justify-center"><span class="font-display text-5xl text-navy-ink"></span></div><div class="p-4"><h3 class="font-display text-title-lg text-navy-ink"></h3><p class="font-body text-body-sm text-light-outline mt-1"></p></div>';
-  $('.aspect-\\[16\\/10\\] span',a).textContent=g.symbol||'✦';
+  $('div span',a).textContent=g.symbol||'✦';
   $('h3',a).textContent=g.title;
   $('p',a).textContent=g.category||'Browser game';
   return a;
