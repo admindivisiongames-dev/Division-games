@@ -167,9 +167,29 @@ async function adminPage(){
   form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><label class="flex items-center gap-2"><input name="is_demo" type="checkbox"> Demo listing</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
   section.prepend(form);
   const list=document.createElement('div');list.className='space-y-3 mt-5';list.dataset.adminGames='true';form.after(list);
-  const refresh=async()=>{const gs=await getGames(true).catch(()=>[]);list.innerHTML=gs.map(g=>'<article class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border"><div><b class="text-navy-ink">'+esc(g.title)+'</b><p class="text-sm text-light-outline">'+esc(g.id)+' · '+esc(g.category)+' · '+(g.published?'Published':'Hidden')+'</p></div><div class="flex gap-2"><button type="button" data-edit="'+esc(g.id)+'" class="px-4 py-2 rounded-full border">Edit</button><button type="button" data-delete="'+esc(g.id)+'" class="px-4 py-2 rounded-full bg-light-error-container text-light-error">Delete</button></div></article>').join('')||'<p>No games found.</p>';
-    $$('[data-edit]',list).forEach(b=>b.onclick=()=>{const g=gs.find(x=>x.id===b.dataset.edit);Object.keys(g).forEach(k=>{if(form.elements[k]&&form.elements[k].type!=='checkbox')form.elements[k].value=g[k]??''});form.elements.published.checked=!!g.published;form.elements.is_demo.checked=!!g.is_demo;form.dataset.editing=g.id;form.scrollIntoView({behavior:'smooth',block:'start'})});
-    $$('[data-delete]',list).forEach(b=>b.onclick=async()=>{if(confirm('Delete this game? Related activity may also be affected.')){const {error}=await supabase.from('games').delete().eq('id',b.dataset.delete);if(error)say($('[data-msg]',form),error.message);else refresh()}});
+  const refresh=async()=>{
+    const gs=await getGames(true).catch(()=>[]);
+    const tbody=$('table tbody');
+    list.hidden=true;
+    if(tbody){
+      const rows=await Promise.all(gs.map(async g=>{
+        const {count}=await supabase.from('likes').select('*',{count:'exact',head:true}).eq('game_id',g.id);
+        return '<tr class="border-b"><td class="px-4 py-3"><b>'+esc(g.title)+'</b><small class="block text-light-outline">'+esc(g.id)+'</small></td><td class="px-4 py-3">'+esc(g.category)+'</td><td class="px-4 py-3">—</td><td class="px-4 py-3">'+(count||0)+'</td><td class="px-4 py-3">'+(g.published?'Published':'Hidden')+'</td><td class="px-4 py-3 text-right"><button type="button" data-edit="'+esc(g.id)+'" class="px-3 py-1 rounded-full border">Edit</button> <button type="button" data-delete="'+esc(g.id)+'" class="px-3 py-1 rounded-full bg-light-error-container text-light-error">Delete</button></td></tr>';
+      }));
+      tbody.innerHTML=rows.join('')||'<tr><td colspan="6" class="p-5">No games yet.</td></tr>';
+    }
+    list.innerHTML=gs.map(g=>'<article class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border"><div><b class="text-navy-ink">'+esc(g.title)+'</b><p class="text-sm text-light-outline">'+esc(g.id)+' · '+esc(g.category)+' · '+(g.published?'Published':'Hidden')+'</p></div><div class="flex gap-2"><button type="button" data-edit="'+esc(g.id)+'" class="px-4 py-2 rounded-full border">Edit</button><button type="button" data-delete="'+esc(g.id)+'" class="px-4 py-2 rounded-full bg-light-error-container text-light-error">Delete</button></div></article>').join('')||'<p>No games found.</p>';
+    $$('[data-edit]',document).forEach(b=>b.onclick=()=>{
+      const g=gs.find(x=>x.id===b.dataset.edit);if(!g)return;
+      Object.keys(g).forEach(k=>{if(form.elements[k]&&form.elements[k].type!=='checkbox')form.elements[k].value=g[k]??''});
+      form.elements.published.checked=!!g.published;form.elements.is_demo.checked=!!g.is_demo;form.dataset.editing=g.id;form.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    $$('[data-delete]',document).forEach(b=>b.onclick=async()=>{
+      if(confirm('Delete this game? Related activity may also be affected.')){
+        const {error}=await supabase.from('games').delete().eq('id',b.dataset.delete);
+        if(error)say($('[data-msg]',form),error.message);else refresh();
+      }
+    });
   };
   form.onsubmit=async e=>{e.preventDefault();const f=form.elements,id=f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),rec={id,title:f.title.value.trim(),category:f.category.value.trim().toLowerCase(),symbol:f.symbol.value.trim()||'✦',game_url:f.game_url.value.trim()||null,cover_color:f.cover_color.value.trim()||'cover-1',description:f.description.value.trim(),instructions:f.instructions.value.trim(),published:f.published.checked,is_demo:f.is_demo.checked};const old=form.dataset.editing;const result=old?await supabase.from('games').update(rec).eq('id',old):await supabase.from('games').insert(rec);say($('[data-msg]',form),result.error?.message||'Game saved.');if(!result.error){delete form.dataset.editing;form.reset();f.cover_color.value='cover-1';f.published.checked=true;refresh()}};
   await refresh();
