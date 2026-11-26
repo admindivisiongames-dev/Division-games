@@ -119,7 +119,7 @@ if (!main || !current || current.email?.toLowerCase() !== adminEmail) {
       const queries=[
         ['Published games',supabase.from('games').select('id',{count:'exact',head:true}).eq('published',true)],
         ['Unpublished games',supabase.from('games').select('id',{count:'exact',head:true}).eq('published',false)],
-        ['Game plays',supabase.from('play_history').select('game_id',{count:'exact',head:true})],
+        ['Game plays',supabase.from('game_plays').select('id',{count:'exact',head:true})],
         ['Comments',supabase.from('comments').select('id',{count:'exact',head:true})],
         ['Game likes',supabase.from('likes').select('game_id',{count:'exact',head:true})],
         ['Comment likes',supabase.from('comment_likes').select('comment_id',{count:'exact',head:true})],
