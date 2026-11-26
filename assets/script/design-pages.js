@@ -63,15 +63,6 @@ async function homePage(){
     const symbol=a.querySelector('.material-symbols-outlined,.cover-art');if(symbol)symbol.textContent=g.symbol||'✦';
     a.dataset.gameTitle=g.title.toLowerCase();a.dataset.gameCategory=(g.category||'').toLowerCase();
   });
-  // Add a complete database-backed shelf without changing the supplied layout.
-  const h=$$('h1,h2,h3').find(x=>/featured games/i.test(x.textContent));
-  const section=h?.closest('section')||h?.parentElement?.parentElement;
-  if(section&&!section.querySelector('[data-live-games]')){
-    const shelf=document.createElement('div');shelf.dataset.liveGames='true';
-    shelf.className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 mt-6';
-    games.slice(0,12).forEach(g=>shelf.append(gameCard(g)));
-    section.append(shelf);
-  }
   const search=$('input[type="search"][aria-label="Search games"]');
   const filter=()=>{
     const q=(search?.value||'').toLowerCase().trim();
