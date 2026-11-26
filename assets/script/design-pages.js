@@ -21,8 +21,11 @@ function gameCard(g){
   const a=document.createElement('a');
   a.href=gameHref(g);
   a.className='group block rounded-2xl overflow-hidden bg-light-surface-container-lowest border border-light-outline-variant/40 hover:shadow-lg transition';
-  a.innerHTML='<div class="aspect-[16/10] bg-section-turquoise/40 flex items-center justify-center"><span class="font-display text-5xl text-navy-ink"></span></div><div class="p-4"><h3 class="font-display text-title-lg text-navy-ink"></h3><p class="font-body text-body-sm text-light-outline mt-1"></p></div>';
-  $('div span',a).textContent=g.symbol||'✦';
+  a.innerHTML='<div class="relative aspect-[16/10] overflow-hidden bg-section-turquoise/40 flex items-center justify-center"><span class="font-display text-5xl text-navy-ink"></span></div><div class="p-4"><h3 class="font-display text-title-lg text-navy-ink"></h3><p class="font-body text-body-sm text-light-outline mt-1"></p></div>';
+  const cover=$('div',a);
+  if(g.image_url){
+    const img=document.createElement('img');img.src=g.image_url;img.alt=g.title+' game artwork';img.loading='lazy';img.referrerPolicy='no-referrer';img.className='absolute inset-0 w-full h-full object-cover';img.onerror=()=>img.remove();cover.append(img);
+  }else{$('span',cover).textContent=g.symbol||'✦'}
   $('h3',a).textContent=g.title;
   $('p',a).textContent=g.category||'Browser game';
   return a;
@@ -61,7 +64,7 @@ async function homePage(){
     const t=a.querySelector('h1,h2,h3,h4')||titleNode(a);if(t)t.textContent=g.title;
     const p=a.querySelector('p');if(p)p.textContent=g.category||'Browser game';
     const symbol=a.querySelector('.material-symbols-outlined,.cover-art');if(symbol)symbol.textContent=g.symbol||'✦';
-    const img=a.querySelector('img');if(img){img.remove();a.style.background='linear-gradient(135deg,#72F2DC,#A6D8FF 55%,#DFBEFF)';a.style.minHeight='190px';a.style.display='flex';a.style.flexDirection='column';a.style.justifyContent='flex-end'}
+    const img=a.querySelector('img');if(img){if(g.image_url){img.src=g.image_url;img.alt=g.title+' game artwork';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();a.style.background='linear-gradient(135deg,#72F2DC,#A6D8FF 55%,#DFBEFF)'}}else{img.remove();a.style.background='linear-gradient(135deg,#72F2DC,#A6D8FF 55%,#DFBEFF)';a.style.minHeight='190px';a.style.display='flex';a.style.flexDirection='column';a.style.justifyContent='flex-end'}}
     a.querySelectorAll('[data-design-text-token="label-sm"]').forEach(b=>{if(/featured|popular|new/i.test(b.textContent))b.parentElement?.remove()});
     a.dataset.gameTitle=g.title.toLowerCase();a.dataset.gameCategory=(g.category||'').toLowerCase();
   });
@@ -110,19 +113,38 @@ async function gamePage(){
   const loadComments=async()=>{const {data,error}=await supabase.from('comments').select('id,body,created_at,user_id,profiles(username)').eq('game_id',game.id).order('created_at',{ascending:false});const box=$('[data-comments]',panel);if(error){box.textContent='Comments are temporarily unavailable.';return}box.innerHTML=(data||[]).map(c=>'<article class="p-4 rounded-2xl bg-light-surface-container-low"><div class="flex justify-between gap-3"><b class="text-navy-ink">'+esc(c.profiles?.username||'Player')+'</b><small class="text-light-outline">'+new Date(c.created_at).toLocaleDateString()+'</small></div><p class="mt-2 text-navy-ink">'+esc(c.body)+'</p>'+(isAdmin||c.user_id===currentUser?.id?'<button data-remove-comment="'+c.id+'" class="mt-2 text-sm text-light-error">Remove</button>':'')+'</article>').join('')||'<p class="text-light-outline">No comments yet.</p>';$$('[data-remove-comment]',box).forEach(b=>b.onclick=async()=>{if(confirm('Remove this comment?')){const {error}=await supabase.from('comments').delete().eq('id',b.dataset.removeComment);if(error)injectNotice(error.message);else loadComments()}})};
   $('[data-comment-form]',panel).onsubmit=async e=>{e.preventDefault();if(!currentUser)return location.href='auth.html';const ta=$('textarea',e.currentTarget),body=ta.value.trim();if(!body)return;const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body});say($('[data-comment-message]',panel),error?.message||'Comment posted.');if(!error){ta.value='';await loadComments()}};
   await Promise.all([refreshLikes(),refreshFav(),loadComments()]);
-  const launch=$$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
+  const launch=$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
   if(launch){
     let gameUrl='';
     try{const parsed=new URL(game.game_url||'');if(['https:','http:'].includes(parsed.protocol))gameUrl=parsed.href}catch{}
     if(gameUrl){
-      launch.href=gameUrl;launch.target='_blank';launch.rel='noopener noreferrer';
-      if(currentUser)launch.addEventListener('click',async e=>{
+      launch.addEventListener('click',async e=>{
         e.preventDefault();
-        const opened=window.open('about:blank','_blank');
-        const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
-        if(settingsRow?.settings?.save_history!==false){const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});if(error)console.warn('Could not save play history:',error.message)}
-        if(opened){opened.opener=null;opened.location.replace(gameUrl)}
-        else location.href=gameUrl;
+        const player=launch.closest('section')?.querySelector('.relative.aspect-video');
+        if(player){
+          player.replaceChildren();
+          const frame=document.createElement('iframe');
+          frame.src=gameUrl;
+          frame.title=game.title+' game';
+          frame.allow='fullscreen; autoplay; gamepad';
+          frame.allowFullscreen=true;
+          frame.referrerPolicy='strict-origin-when-cross-origin';
+          frame.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#081748';
+          player.style.position='relative';
+          player.append(frame);
+          const fallback=document.createElement('a');
+          fallback.href=gameUrl;fallback.target='_blank';fallback.rel='noopener noreferrer';
+          fallback.textContent='If the game does not load, open it on its website ↗';
+          fallback.style.cssText='position:absolute;bottom:10px;left:10px;z-index:5;padding:8px 12px;border-radius:999px;background:rgba(8,23,72,.88);color:white;font:12px sans-serif';
+          player.append(fallback);
+        }else{window.open(gameUrl,'_blank','noopener,noreferrer')}
+        if(currentUser){
+          const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
+          if(settingsRow?.settings?.save_history!==false){
+            const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});
+            if(error)console.warn('Could not save play history:',error.message);
+          }
+        }
       });
     }else{
       launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This listing is ready, but its game URL has not been added by an admin yet.')});
@@ -174,7 +196,7 @@ async function adminPage(){
   const heading=$$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
   const section=heading?.closest('section')||heading?.parentElement?.parentElement||main;
   const form=document.createElement('form');form.id='add-game';form.className='my-6 p-5 md:p-7 rounded-3xl bg-light-surface-container-low border border-light-outline-variant space-y-3';
-  form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><label class="flex items-center gap-2"><input name="is_demo" type="checkbox"> Demo listing</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
+  form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="image_url" type="url" placeholder="Game image URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><label class="flex items-center gap-2"><input name="is_demo" type="checkbox"> Demo listing</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
   section.prepend(form);
   const list=document.createElement('div');list.className='space-y-3 mt-5';list.dataset.adminGames='true';form.after(list);
   const refresh=async()=>{
@@ -201,7 +223,7 @@ async function adminPage(){
       }
     });
   };
-  form.onsubmit=async e=>{e.preventDefault();const f=form.elements,id=f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),rec={id,title:f.title.value.trim(),category:f.category.value.trim().toLowerCase(),symbol:f.symbol.value.trim()||'✦',game_url:f.game_url.value.trim()||null,cover_color:f.cover_color.value.trim()||'cover-1',description:f.description.value.trim(),instructions:f.instructions.value.trim(),published:f.published.checked,is_demo:f.is_demo.checked};const old=form.dataset.editing;const result=old?await supabase.from('games').update(rec).eq('id',old):await supabase.from('games').insert(rec);say($('[data-msg]',form),result.error?.message||'Game saved.');if(!result.error){delete form.dataset.editing;form.reset();f.cover_color.value='cover-1';f.published.checked=true;refresh()}};
+  form.onsubmit=async e=>{e.preventDefault();const f=form.elements,id=f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),rec={id,title:f.title.value.trim(),category:f.category.value.trim().toLowerCase(),symbol:f.symbol.value.trim()||'✦',game_url:f.game_url.value.trim()||null,image_url:f.image_url.value.trim()||null,cover_color:f.cover_color.value.trim()||'cover-1',description:f.description.value.trim(),instructions:f.instructions.value.trim(),published:f.published.checked,is_demo:f.is_demo.checked};const old=form.dataset.editing;const result=old?await supabase.from('games').update(rec).eq('id',old):await supabase.from('games').insert(rec);say($('[data-msg]',form),result.error?.message||'Game saved.');if(!result.error){delete form.dataset.editing;form.reset();f.cover_color.value='cover-1';f.published.checked=true;refresh()}};
   await refresh();
 }
 const path=location.pathname.split('/').pop();
