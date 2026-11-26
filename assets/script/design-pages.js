@@ -191,6 +191,38 @@ async function gamePage(){
   }else if(launch){
     launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This game does not have a playable URL yet.')});
   }
+
+  // Real community comments for the selected game.
+  const commentsSection=document.createElement('section');
+  commentsSection.id='comments';
+  commentsSection.className='rounded-3xl border border-line/60 bg-white p-6 shadow-sm space-y-4';
+  commentsSection.innerHTML='<div class="flex items-center justify-between gap-3"><h2 class="font-display text-2xl font-semibold">Comments <span data-comment-count class="text-base text-slate-500">0</span></h2><span class="text-sm text-slate-500">Newest first</span></div><div data-comment-list class="space-y-3"><p class="text-sm text-slate-500">Loading comments…</p></div><form data-comment-form class="space-y-3"><textarea name="body" maxlength="1200" required placeholder="Share a tip, review, or your experience…" class="w-full min-h-24 rounded-2xl border border-line p-4"></textarea><div class="flex flex-wrap items-center justify-between gap-3"><p data-comment-message class="text-sm text-slate-500">'+(currentUser?'Posting as '+esc(profile.username||currentUser.email||'Player'):'Sign in to post a comment.')+'</p><button class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit">Post comment</button></div></form>';
+  const gameMain=$('main');
+  gameMain?.append(commentsSection);
+  const commentList=$('[data-comment-list]',commentsSection);
+  const commentCount=$('[data-comment-count]',commentsSection);
+  const commentForm=$('[data-comment-form]',commentsSection);
+  const commentMessage=$('[data-comment-message]',commentsSection);
+  const loadGameComments=async()=>{
+    const {data,error}=await supabase.from('comments').select('id,body,user_id,created_at,profiles(username,avatar_url)').eq('game_id',game.id).order('created_at',{ascending:false});
+    if(error){commentList.textContent='Comments could not load right now.';return}
+    commentCount.textContent=String(data?.length||0);
+    if(!data?.length){commentList.innerHTML='<p class="text-sm text-slate-500">No comments yet. Be the first to comment.</p>';return}
+    commentList.innerHTML=data.map(c=>'<article class="rounded-2xl bg-slate-50 p-4" data-comment-id="'+esc(c.id)+'"><div class="flex items-center gap-3"><img class="h-9 w-9 rounded-full object-cover" src="'+esc(c.profiles?.avatar_url||'assets/icons/avatar.svg')+'" alt="" onerror="this.onerror=null;this.src=\'assets/icons/avatar.svg\'"><div class="min-w-0"><p class="font-semibold text-navy">'+esc(c.profiles?.username||'Player')+'</p><time class="text-xs text-slate-500">'+new Date(c.created_at).toLocaleString()+'</time></div></div><p data-comment-body class="mt-3 whitespace-pre-wrap break-words text-sm text-slate-700">'+esc(c.body)+'</p>'+(currentUser&&(c.user_id===currentUser.id||isAdmin)?'<div class="mt-3 flex gap-3"><button type="button" data-edit-comment="'+esc(c.id)+'" class="text-sm font-semibold text-navy">Edit</button><button type="button" data-delete-comment="'+esc(c.id)+'" class="text-sm font-semibold text-red-600">Delete</button></div>':'')+'</article>').join('');
+    $('[data-delete-comment]',commentList).forEach(button=>button.onclick=async()=>{if(!confirm('Delete this comment?'))return;const {error}=await supabase.from('comments').delete().eq('id',button.dataset.deleteComment);if(error)say(commentMessage,error.message);else await loadGameComments()});
+    $('[data-edit-comment]',commentList).forEach(button=>button.onclick=()=>{
+      const article=button.closest('article'),bodyNode=$('[data-comment-body]',article),original=bodyNode.textContent;
+      const editor=document.createElement('textarea');editor.maxLength=1200;editor.value=original;editor.className='mt-3 w-full rounded-xl border p-3 text-sm';
+      const save=document.createElement('button');save.type='button';save.textContent='Save edit';save.className='mt-2 mr-3 text-sm font-semibold text-navy';
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.className='mt-2 text-sm text-slate-500';
+      bodyNode.replaceWith(editor);button.parentElement.replaceChildren(save,cancel);
+      cancel.onclick=()=>loadGameComments();
+      save.onclick=async()=>{const body=editor.value.trim();if(!body)return;const {error}=await supabase.from('comments').update({body}).eq('id',button.dataset.editComment).eq('user_id',currentUser.id);if(error)say(commentMessage,error.message);else await loadGameComments()};
+    });
+  };
+  commentForm.onsubmit=async e=>{e.preventDefault();if(!currentUser){location.href='auth.html?next='+encodeURIComponent('game.html?id='+game.id+'#comments');return}const body=commentForm.elements.body.value.trim();if(!body)return;const submit=commentForm.querySelector('button[type="submit"]');submit.disabled=true;const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body});submit.disabled=false;say(commentMessage,error?.message||'Comment posted.');if(!error){commentForm.reset();await loadGameComments()}};
+  await loadGameComments();
+
 }
 async function profilePage(){
   if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
