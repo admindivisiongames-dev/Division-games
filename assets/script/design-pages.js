@@ -124,8 +124,8 @@ async function homePage(){
 async function gamePage(){
   const id=new URLSearchParams(location.search).get('id');
   let games=[];try{games=await getGames()}catch{}
-  const game=games.find(g=>g.id===id)||games[0];
-  if(!game)return;
+  const game=games.find(g=>g.id===id);
+  if(!game){const main=$('main');if(main){main.replaceChildren();const notice=document.createElement('section');notice.className='max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-white';notice.innerHTML='<h1 class="font-display text-3xl mb-3">Game unavailable</h1><p>This game may have been removed, unpublished, or the link is incorrect.</p><a href="index.html#games" class="inline-block mt-5 underline">Back to games</a>';main.append(notice)}return;}
   document.title=game.title+' — Division';
   const title=$$('h1,h2').find(h=>/neon drift turbo|shadow blade duel/i.test(h.textContent))||$('h1');
   if(title)title.textContent=game.title;
