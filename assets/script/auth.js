@@ -6,6 +6,12 @@ const form=$('#form');
 const submit=$('.auth-submit');
 const message=$('#message');
 
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_IN'&&session){
+    window.location.replace('profile.html');
+  }
+});
+
 function setMode(next){
   mode=next;
   const signup=mode==='signup';
