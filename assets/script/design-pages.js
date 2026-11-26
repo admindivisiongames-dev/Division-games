@@ -131,7 +131,7 @@ async function gamePage(){
   if(title)title.textContent=game.title;
   const about=$$('h2').find(h=>/about /i.test(h.textContent));
   if(about)about.textContent='About '+game.title;
-  const description=$('[data-game-description]')||$('p').find(p=>p.textContent.trim().length>45);
+  const description=$('[data-game-description]')||$$('p').find(p=>p.textContent.trim().length>45);
   if(description&&game.description)description.textContent=game.description;
   const launch=$$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
   const likeButton=$('[data-like]'),favoriteButton=$('[data-fav]'),fullButton=$('[data-fullscreen]');
