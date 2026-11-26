@@ -133,7 +133,38 @@ async function gamePage(){
   if(about)about.textContent='About '+game.title;
   const description=$$('p').find(p=>p.textContent.trim().length>45);
   if(description&&game.description)description.textContent=game.description;
-  const launch=$$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
+  const launch=$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
+  const likeButton=$('[data-like]'),favoriteButton=$('[data-fav]'),fullButton=$('[data-fullscreen]');
+  const refreshActions=async()=>{
+    const {count}=await supabase.from('likes').select('*',{count:'exact',head:true}).eq('game_id',game.id);
+    if(likeButton)likeButton.textContent='♥ '+(count||0)+' Likes';
+    if(currentUser){
+      const [{data:liked},{data:saved}]=await Promise.all([
+        supabase.from('likes').select('user_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle(),
+        supabase.from('favorites').select('game_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle()
+      ]);
+      if(likeButton)likeButton.dataset.active=liked?'true':'false';
+      if(favoriteButton)favoriteButton.querySelector('span').textContent=saved?'bookmark_added':'bookmark';
+    }
+  };
+  if(likeButton)likeButton.addEventListener('click',async()=>{
+    if(!currentUser)return location.href='auth.html';
+    const {data}=await supabase.from('likes').select('user_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();
+    const result=data?await supabase.from('likes').delete().eq('user_id',currentUser.id).eq('game_id',game.id):await supabase.from('likes').insert({user_id:currentUser.id,game_id:game.id});
+    if(result.error)injectNotice(result.error.message);else refreshActions();
+  });
+  if(favoriteButton)favoriteButton.addEventListener('click',async()=>{
+    if(!currentUser)return location.href='auth.html';
+    const {data}=await supabase.from('favorites').select('game_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();
+    const result=data?await supabase.from('favorites').delete().eq('user_id',currentUser.id).eq('game_id',game.id):await supabase.from('favorites').insert({user_id:currentUser.id,game_id:game.id});
+    if(result.error)injectNotice(result.error.message);else refreshActions();
+  });
+  if(fullButton)fullButton.addEventListener('click',()=>{
+    const player=document.querySelector('.relative.aspect-video');
+    if(player?.requestFullscreen)player.requestFullscreen().catch(()=>injectNotice('Fullscreen is not available in this browser.'));
+  });
+  refreshActions();
+
   let gameUrl='';
   try{const parsed=new URL(game.game_url||'');if(['https:','http:'].includes(parsed.protocol))gameUrl=parsed.href}catch{}
   if(launch&&gameUrl){
