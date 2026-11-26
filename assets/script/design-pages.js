@@ -144,7 +144,7 @@ async function gamePage(){
         supabase.from('favorites').select('game_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle()
       ]);
       if(likeButton)likeButton.dataset.active=liked?'true':'false';
-      if(favoriteButton)favoriteButton.querySelector('span').textContent=saved?'bookmark_added':'bookmark';
+      if(favoriteButton)favoriteButton.textContent=saved?'Saved':'Save';
     }
   };
   if(likeButton)likeButton.addEventListener('click',async()=>{
