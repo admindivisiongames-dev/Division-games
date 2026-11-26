@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101010">
+  <meta name="description" content="Division — play browser games.">
+  <title>Division — Browser Games</title>
+  <link rel="stylesheet" href="assets/style/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Division home"><span class="brand-mark">÷</span> Division</a>
+    <nav aria-label="Main navigation">
+      <a href="#games">Games</a>
+      <a href="#about">About</a>
+    </nav>
+    <button class="menu-button" id="menuButton" aria-label="Open menu" aria-expanded="false">☰</button>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> YOUR NEXT BREAK STARTS HERE</p>
+        <h1>Play more.<br><em>Scroll less.</em></h1>
+        <p class="hero-text">Quick games. Big fun. Jump into your next favourite game.</p>
+        <a class="primary-button" href="#games">Explore games <span>↗</span></a>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+        <div class="big-symbol">÷</div><div class="art-chip chip-one">PLAY</div><div class="art-chip chip-two">AGAIN</div>
+      </div>
+    </section>
+    <section class="games-section" id="games">
+      <div class="section-heading">
+        <div><p class="eyebrow">THE ARCADE</p><h2>Find your game.</h2></div>
+        <label class="search-wrap"><span>⌕</span><input id="gameSearch" type="search" placeholder="Search games..." autocomplete="off"></label>
+      </div>
+      <div class="category-list" id="categories" aria-label="Filter games">
+        <button class="category active" data-category="all">All games</button>
+        <button class="category" data-category="action">Action</button>
+        <button class="category" data-category="driving">Driving</button>
+        <button class="category" data-category="racing">Racing</button>
+        <button class="category" data-category="adventure">Adventure</button>
+        <button class="category" data-category="simulation">Simulation</button>
+      </div>
+      <div class="game-grid" id="gameGrid">
+        <article class="game-card" data-name="Coming soon" data-category="all">
+          <div class="game-cover cover-orange"><span class="cover-symbol">÷</span><span class="cover-tag">SOON</span></div>
+          <div class="game-info"><div><h3>More games loading</h3><p>New games are on the way</p></div><span class="play-icon">↗</span></div>
+        </article>
+      </div>
+      <p class="empty-state" id="emptyState" hidden>No games match that search.</p>
+    </section>
+    <section class="about-section" id="about">
+      <span class="about-mark">÷</span><div><p class="eyebrow">WELCOME TO DIVISION</p><h2>Your break.<br>Done right.</h2></div>
+      <p>Division is a growing collection of browser games made for quick breaks and good times. More games are coming soon.</p>
+    </section>
+  </main>
+  <footer><a class="brand" href="#"><span class="brand-mark">÷</span> Division</a><span>© <span id="year"></span> Division Games</span><span>Made for play.</span></footer>
+  <script src="assets/script/script.js"></script>
+</body>
+</html>
