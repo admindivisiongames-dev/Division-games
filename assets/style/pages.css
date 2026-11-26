@@ -67,3 +67,16 @@
 .auth-mini-mark.division-logo-mark{width:34px;height:34px;flex-basis:34px;border:1.5px solid #081748;border-radius:9px}
 .auth-mini-mark.division-logo-mark .division-logo-eye{width:17px;height:14px}
 .auth-mini-mark.division-logo-mark .division-logo-smile{width:11px;height:4px}
+
+
+/* Auth provider + verification controls */
+.auth-or{display:flex;align-items:center;gap:12px;margin:18px 0;color:#8a978f}
+.auth-or span{height:1px;flex:1;background:#e4ece7}
+.auth-or small{font:700 9px 'Fragment Mono',monospace;letter-spacing:1px;white-space:nowrap}
+.google-auth-button{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;min-height:49px;padding:12px 16px;border:1.5px solid #d6e1db;border-radius:12px;background:#fff;color:#081748;font:600 14px 'Varela Round',sans-serif;cursor:pointer;transition:border-color .15s,background .15s}
+.google-auth-button:hover{border-color:#081748;background:#f8fbf9}
+.google-auth-button:disabled{opacity:.6;cursor:wait}
+.auth-resend{display:block;margin:8px auto 0;border:0;background:transparent;color:#007a65;font:700 12px 'Varela Round',sans-serif;text-decoration:underline;cursor:pointer}
+.auth-resend[hidden]{display:none}
+.auth-message[data-kind="error"]{color:#b3261e}
+.auth-message[data-kind="info"]{color:#007a65}
