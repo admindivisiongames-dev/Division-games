@@ -455,4 +455,15 @@ try{
   if(path==='profile.html')await profilePage();
   
   if(path==='admin.html')await adminPage();
-}catch(error){console.error('Division page integration:',error);injectNotice('Some live features could not load. Refresh the page or check your connection.')}
+}catch(error){
+  console.error('Division page integration:',error);
+  document.body.style.visibility='visible';
+  if(path==='admin.html'){
+    const main=$('main')||document.body;main.replaceChildren();
+    const panel=document.createElement('section');panel.className='max-w-4xl mx-auto my-12 p-8 rounded-3xl bg-white text-slate-900 border border-slate-200';
+    const title=document.createElement('h1');title.className='font-display text-2xl mb-3';title.textContent='Admin dashboard could not load';
+    const detail=document.createElement('p');detail.className='text-sm';detail.textContent='A dashboard feature failed to initialize. Refresh once; if it continues, send this error to the site admin: '+(error?.message||'Unknown error');
+    const retry=document.createElement('button');retry.type='button';retry.className='mt-5 rounded-full bg-navy px-5 py-3 text-white';retry.textContent='Reload dashboard';retry.onclick=()=>location.reload();
+    panel.append(title,detail,retry);main.append(panel);
+  }else injectNotice('Some live features could not load. Refresh the page or check your connection.');
+}
