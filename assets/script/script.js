@@ -1,47 +1,8 @@
-const searchInput = document.querySelector('#gameSearch');
-const cards = [...document.querySelectorAll('.game-card')];
-const categoryButtons = [...document.querySelectorAll('.category')];
-const emptyState = document.querySelector('#emptyState');
-let activeCategory = 'all';
-
-function filterGames() {
-  const term = searchInput.value.trim().toLowerCase();
-  let visibleCount = 0;
-
-  cards.forEach((card) => {
-    const name = (card.dataset.name || '').toLowerCase();
-    const category = card.dataset.category || 'all';
-    const matchesSearch = name.includes(term);
-    const matchesCategory = activeCategory === 'all' || category === activeCategory;
-    const visible = matchesSearch && matchesCategory;
-    card.hidden = !visible;
-    if (visible) visibleCount++;
-  });
-
-  emptyState.hidden = visibleCount !== 0;
-}
-
-searchInput.addEventListener('input', filterGames);
-categoryButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    activeCategory = button.dataset.category;
-    categoryButtons.forEach((item) => item.classList.toggle('active', item === button));
-    filterGames();
-  });
-});
-
-const menuButton = document.querySelector('#menuButton');
-const navigation = document.querySelector('.topbar nav');
-menuButton.addEventListener('click', () => {
-  const isOpen = navigation.classList.toggle('open');
-  menuButton.setAttribute('aria-expanded', String(isOpen));
-});
-navigation.querySelectorAll('a').forEach((link) => {
-  link.addEventListener('click', () => {
-    navigation.classList.remove('open');
-    menuButton.setAttribute('aria-expanded', 'false');
-  });
-});
-
-document.querySelector('#year').textContent = new Date().getFullYear();
-filterGames();
+const DEMO_GAMES=[{id:'shadow-blade-duel',title:'Shadow Blade Duel',category:'action',subtitle:'Precision swordplay',symbol:'⚔',cover:'cover-1',featured:true},{id:'block-miner-quest',title:'Block Miner Quest',category:'adventure',subtitle:'Mine. Build. Explore.',symbol:'▦',cover:'cover-2'},{id:'astro-bounce',title:'Astro Bounce',category:'arcade',subtitle:'Cosmic jumping',symbol:'✦',cover:'cover-3'},{id:'turbo-sky-kart',title:'Turbo Sky Kart',category:'racing',subtitle:'Race above the clouds',symbol:'➤',cover:'cover-4'},{id:'dino-jungle-dash',title:'Dino Jungle Dash',category:'adventure',subtitle:'Run through the wild',symbol:'♜',cover:'cover-5'},{id:'neon-drift-turbo',title:'Neon Drift Turbo',category:'driving',subtitle:'Street drift challenge',symbol:'◉',cover:'cover-6'},{id:'puzzle-pop',title:'Puzzle Pop Studio',category:'puzzle',subtitle:'Match and unwind',symbol:'▧',cover:'cover-2'},{id:'pixel-arena',title:'Pixel Arena',category:'multiplayer',subtitle:'Friendly arena demo',symbol:'✹',cover:'cover-4'}];
+const $=s=>document.querySelector(s);let activeCategory='all';let games=(()=>{try{return JSON.parse(localStorage.getItem('division.games'))||DEMO_GAMES}catch{return DEMO_GAMES}})();
+function saveGames(){localStorage.setItem('division.games',JSON.stringify(games))}
+function renderGames(){const grid=$('#gameGrid');if(!grid)return;const q=($('#gameSearch')?.value||'').trim().toLowerCase();const filtered=games.filter(g=>(activeCategory==='all'||g.category===activeCategory)&&(g.title+' '+g.category+' '+(g.subtitle||'')).toLowerCase().includes(q));grid.innerHTML=filtered.map((g,i)=>'<a class="game-card" href="game.html?id='+encodeURIComponent(g.id)+'"><div class="game-cover '+(g.cover||'cover-1')+'"><span class="cover-tag">DEMO</span><span class="cover-art">'+(g.symbol||'✦')+'</span></div><div class="game-info"><h3>'+escapeHtml(g.title)+'</h3><div class="game-meta"><span>'+escapeHtml(g.category)+'</span><span class="play-small">Play ↗</span></div></div></a>').join('');$('#emptyState').hidden=filtered.length>0}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('#gameSearch')?.addEventListener('input',renderGames);$('#categories')?.addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;activeCategory=b.dataset.category;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));renderGames()});
+const theme=localStorage.getItem('division.theme');if(theme==='dark')document.body.classList.add('dark');$('#themeToggle')?.addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('division.theme',document.body.classList.contains('dark')?'dark':'light')});
+$('#year')&&($('#year').textContent=new Date().getFullYear());renderGames();
