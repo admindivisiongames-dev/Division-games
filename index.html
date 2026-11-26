@@ -1,62 +1,12 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101010">
-  <meta name="description" content="Division — play browser games.">
-  <title>Division — Browser Games</title>
-  <link rel="stylesheet" href="assets/style/style.css">
-</head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081748"><meta name="description" content="Play free browser games on Division."><title>Division — Play free browser games</title><link rel="stylesheet" href="assets/style/style.css"><link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Varela+Round&family=Fragment+Mono&display=swap" rel="stylesheet"></head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="Division home"><span class="brand-mark">÷</span> Division</a>
-    <nav aria-label="Main navigation">
-      <a href="#games">Games</a>
-      <a href="#about">About</a>
-    </nav>
-    <button class="menu-button" id="menuButton" aria-label="Open menu" aria-expanded="false">☰</button>
-  </header>
-  <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow"><span></span> YOUR NEXT BREAK STARTS HERE</p>
-        <h1>Play more.<br><em>Scroll less.</em></h1>
-        <p class="hero-text">Quick games. Big fun. Jump into your next favourite game.</p>
-        <a class="primary-button" href="#games">Explore games <span>↗</span></a>
-      </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-        <div class="big-symbol">÷</div><div class="art-chip chip-one">PLAY</div><div class="art-chip chip-two">AGAIN</div>
-      </div>
-    </section>
-    <section class="games-section" id="games">
-      <div class="section-heading">
-        <div><p class="eyebrow">THE ARCADE</p><h2>Find your game.</h2></div>
-        <label class="search-wrap"><span>⌕</span><input id="gameSearch" type="search" placeholder="Search games..." autocomplete="off"></label>
-      </div>
-      <div class="category-list" id="categories" aria-label="Filter games">
-        <button class="category active" data-category="all">All games</button>
-        <button class="category" data-category="action">Action</button>
-        <button class="category" data-category="driving">Driving</button>
-        <button class="category" data-category="racing">Racing</button>
-        <button class="category" data-category="adventure">Adventure</button>
-        <button class="category" data-category="simulation">Simulation</button>
-      </div>
-      <div class="game-grid" id="gameGrid">
-        <article class="game-card" data-name="Coming soon" data-category="all">
-          <div class="game-cover cover-orange"><span class="cover-symbol">÷</span><span class="cover-tag">SOON</span></div>
-          <div class="game-info"><div><h3>More games loading</h3><p>New games are on the way</p></div><span class="play-icon">↗</span></div>
-        </article>
-      </div>
-      <p class="empty-state" id="emptyState" hidden>No games match that search.</p>
-    </section>
-    <section class="about-section" id="about">
-      <span class="about-mark">÷</span><div><p class="eyebrow">WELCOME TO DIVISION</p><h2>Your break.<br>Done right.</h2></div>
-      <p>Division is a growing collection of browser games made for quick breaks and good times. More games are coming soon.</p>
-    </section>
-  </main>
-  <footer><a class="brand" href="#"><span class="brand-mark">÷</span> Division</a><span>© <span id="year"></span> Division Games</span><span>Made for play.</span></footer>
-  <script src="assets/script/script.js"></script>
-</body>
-</html>
+<header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">÷</span> DIVISION</a><nav class="main-nav"><a href="#popular">Popular</a><a href="#new">New games</a><a href="#multiplayer">Multiplayer</a></nav><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">◐</button><a class="text-btn" href="auth.html" id="accountLink">Log in</a><a class="nav-cta" href="admin.html">Admin</a></div></header>
+<main>
+<section class="hero"><div class="hero-copy"><div class="pill"><span class="live-dot"></span> YOUR NEXT BREAK STARTS HERE</div><h1>Let the world<br><span>play.</span></h1><p>Instant browser play — zero downloads, pure arcade speed.</p><a class="button button-dark" href="#popular">Explore games <span>↗</span></a><div class="hero-note">✦ Free to play · No downloads</div></div><div class="hero-visual"><div class="hero-blob blob-a"></div><div class="hero-blob blob-b"></div><div class="hero-star">✦</div><div class="hero-sticker sticker-top">PRESS<br>PLAY</div><div class="hero-sticker sticker-bottom">÷ LET'S GO</div><div class="hero-orbit">DIVISION</div></div></section>
+<section class="section section-turquoise" id="popular"><div class="section-head"><div><span class="section-kicker">THE ARCADE</span><h2>Featured games <span>✦</span></h2><p>Jump in. Find your next favourite.</p></div><label class="search"><span>⌕</span><input id="gameSearch" type="search" placeholder="Search games..." aria-label="Search games"></label></div><div class="category-row" id="categories"><button class="chip active" data-category="all">All games</button><button class="chip" data-category="action">Action</button><button class="chip" data-category="racing">Racing</button><button class="chip" data-category="driving">Driving</button><button class="chip" data-category="adventure">Adventure</button><button class="chip" data-category="simulation">Simulation</button><button class="chip" data-category="puzzle">Puzzle</button><button class="chip" data-category="multiplayer">Multiplayer</button></div><div class="game-grid" id="gameGrid"></div><p class="empty-state" id="emptyState" hidden>No games match your search.</p></section>
+<section class="section section-yellow" id="new"><div class="section-head"><div><span class="section-kicker">FRESH DROP</span><h2>New games <span>↗</span></h2><p>Fresh demo games to explore.</p></div><a class="button button-outline" href="#popular">See all games</a></div><div class="feature-strip"><div class="feature-art art-purple"><span>✦</span><b>ASTRO<br>BOUNCE</b></div><div><span class="section-kicker">DEMO PICK</span><h3>Astro Bounce</h3><p>Launch, bounce, and find your way through a cosmic playground.</p><a class="button button-dark" href="game.html?id=astro-bounce">Play now ↗</a></div></div></section>
+<section class="section section-purple" id="multiplayer"><div class="section-head"><div><span class="section-kicker">PLAY TOGETHER</span><h2>Multiplayer games <span>☻</span></h2><p>Bring a friend into the fun.</p></div></div><div class="mini-grid"><a class="mini-card" href="game.html?id=block-miner-quest"><span class="mini-icon">▦</span><b>Block Miner Quest</b><small>Adventure · Demo</small></a><a class="mini-card" href="game.html?id=neon-drift-turbo"><span class="mini-icon">➤</span><b>Neon Drift Turbo</b><small>Racing · Demo</small></a><a class="mini-card" href="game.html?id=shadow-blade-duel"><span class="mini-icon">⚔</span><b>Shadow Blade Duel</b><small>Action · Demo</small></a></div></section>
+<section class="section section-blue"><div class="about-row"><div class="about-mark">÷</div><div><span class="section-kicker">WELCOME TO DIVISION</span><h2>Your break.<br>Done right.</h2></div><p>Division is a growing collection of browser games made for quick breaks and good times. These starter games are demos — add your real games from the admin dashboard when you're ready.</p></div></section></main>
+<footer class="site-footer"><a class="brand" href="index.html"><span class="brand-mark">÷</span> DIVISION</a><span>Let the world play — instant browser games.</span><span>© <span id="year"></span> Division Games</span></footer>
+<div class="toast" id="toast" role="status"></div><script src="assets/script/script.js"></script></body></html>
