@@ -53,14 +53,16 @@ async function homePage(){
     const grid=heading?.parentElement?.parentElement;
     if(grid)templates=[...$$('a',grid)];
   }
-  const list=templates.filter(a=>a.querySelector('h3,h4'));
+  const list=templates;
   list.forEach((a,i)=>{
-    const g=games[i%Math.max(games.length,1)];
-    if(!g)return;
+    const g=games[i];
+    if(!g){a.remove();return}
     a.href=gameHref(g);
-    const t=titleNode(a);if(t)t.textContent=g.title;
+    const t=a.querySelector('h1,h2,h3,h4')||titleNode(a);if(t)t.textContent=g.title;
     const p=a.querySelector('p');if(p)p.textContent=g.category||'Browser game';
     const symbol=a.querySelector('.material-symbols-outlined,.cover-art');if(symbol)symbol.textContent=g.symbol||'✦';
+    const img=a.querySelector('img');if(img){img.remove();a.style.background='linear-gradient(135deg,#72F2DC,#A6D8FF 55%,#DFBEFF)';a.style.minHeight='190px';a.style.display='flex';a.style.flexDirection='column';a.style.justifyContent='flex-end'}
+    a.querySelectorAll('[data-design-text-token="label-sm"]').forEach(b=>{if(/featured|popular|new/i.test(b.textContent))b.parentElement?.remove()});
     a.dataset.gameTitle=g.title.toLowerCase();a.dataset.gameCategory=(g.category||'').toLowerCase();
   });
   const search=$('input[type="search"][aria-label="Search games"]');
