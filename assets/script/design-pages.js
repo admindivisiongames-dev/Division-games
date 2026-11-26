@@ -101,6 +101,7 @@ async function gamePage(){
   if(description&&game.description)description.textContent=game.description;
   const controls=$$('h2,h3').find(h=>/player comments/i.test(h.textContent));
   const section=controls?.closest('section')||controls?.parentElement?.parentElement;
+  $('a[href="comments.html"]').forEach(a=>a.href='comments.html?id='+encodeURIComponent(game.id));
   if(!section)return;
   const panel=document.createElement('div');panel.className='mt-5 space-y-4';panel.innerHTML='<div class="flex flex-wrap items-center gap-3"><button data-like class="px-5 py-3 rounded-full bg-section-turquoise text-navy-ink font-label">♡ Like <span data-like-count>0</span></button><button data-fav class="px-5 py-3 rounded-full bg-section-yellow/60 text-navy-ink font-label">☆ Save</button></div><div data-comments class="space-y-3"></div><form data-comment-form class="mt-4 space-y-3"><textarea maxlength="1200" required placeholder="Write a comment..." class="w-full min-h-24 p-4 rounded-2xl border border-light-outline-variant bg-light-surface-container-lowest"></textarea><button class="px-6 py-3 rounded-full bg-navy-ink text-white font-label">Post comment</button><p data-comment-message class="text-sm"></p></form>';
   section.append(panel);
@@ -121,7 +122,7 @@ async function gamePage(){
 }
 
 async function profilePage(){
-  if(!currentUser){injectNotice('Please sign in to view your profile.');return}
+  if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
   const name=profile.username||currentUser.email?.split('@')[0]||'Player';
   $$('h1,h2,h3').forEach(h=>{if(/pixelace_99/i.test(h.textContent))h.textContent=name});
   $$('input').forEach(input=>{if(input.type==='text'&&input.value==='PixelAce_99')input.value=name;if(input.type==='email'&&input.value.includes('@division.gg'))input.value=currentUser.email||''});
