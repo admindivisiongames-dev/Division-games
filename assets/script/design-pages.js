@@ -4,7 +4,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const say = (node, message) => { if (node) node.textContent = message; };
 const currentUser = await user().catch(()=>null);
-const profileResult = currentUser ? await supabase.from('profiles').select('username,role,avatar_url').eq('id',currentUser.id).maybeSingle() : {data:null};
+const profileResult = currentUser ? await supabase.from('profiles').select('username,role,avatar_url,created_at').eq('id',currentUser.id).maybeSingle() : {data:null};
 const profile = profileResult.data || {};
 const ADMIN_EMAIL = 'admin.division.games@gmail.com';
 const isAdmin = profile.role === 'admin' && currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
@@ -123,67 +123,38 @@ async function gamePage(){
   document.title=game.title+' — Division';
   const title=$$('h1,h2').find(h=>/neon drift turbo|shadow blade duel/i.test(h.textContent))||$('h1');
   if(title)title.textContent=game.title;
-  const headings=$$('h2');const about=headings.find(h=>/about /i.test(h.textContent));
+  const about=$$('h2').find(h=>/about /i.test(h.textContent));
   if(about)about.textContent='About '+game.title;
   const description=$$('p').find(p=>p.textContent.trim().length>45);
   if(description&&game.description)description.textContent=game.description;
-  const controls=$$('h2,h3').find(h=>/player comments/i.test(h.textContent));
-  const section=controls?.closest('section')||controls?.parentElement?.parentElement;
-  $$('a[href="comments.html"]').forEach(a=>a.href='comments.html?id='+encodeURIComponent(game.id));
-  if(!section)return;
-  const panel=document.createElement('div');panel.className='mt-5 space-y-4';panel.innerHTML='<div class="flex flex-wrap items-center gap-3"><button data-like class="px-5 py-3 rounded-full bg-section-turquoise text-navy-ink font-label">♡ Like <span data-like-count>0</span></button><button data-fav class="px-5 py-3 rounded-full bg-section-yellow/60 text-navy-ink font-label">☆ Save</button></div><div data-comments class="space-y-3"></div><form data-comment-form class="mt-4 space-y-3"><textarea maxlength="1200" required placeholder="Write a comment..." class="w-full min-h-24 p-4 rounded-2xl border border-light-outline-variant bg-light-surface-container-lowest"></textarea><button class="px-6 py-3 rounded-full bg-navy-ink text-white font-label">Post comment</button><p data-comment-message class="text-sm"></p></form>';
-  section.append(panel);
-  const likeBtn=$('[data-like]',panel),favBtn=$('[data-fav]',panel),countNode=$('[data-like-count]',panel);
-  const refreshLikes=async()=>{
-    const {count}=await supabase.from('likes').select('*',{count:'exact',head:true}).eq('game_id',game.id);
-    countNode.textContent=count||0;
-    if(currentUser){const {data}=await supabase.from('likes').select('user_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();likeBtn.textContent=(data?'♥':'♡')+' Like '+(count||0)}
-  };
-  const refreshFav=async()=>{if(!currentUser)return;const {data}=await supabase.from('favorites').select('game_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();favBtn.textContent=data?'★ Saved':'☆ Save'};
-  likeBtn.onclick=async()=>{if(!currentUser)return location.href='auth.html';const {data}=await supabase.from('likes').select('user_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();const r=data?await supabase.from('likes').delete().eq('user_id',currentUser.id).eq('game_id',game.id):await supabase.from('likes').insert({user_id:currentUser.id,game_id:game.id});if(r.error)injectNotice(r.error.message);await refreshLikes()};
-  favBtn.onclick=async()=>{if(!currentUser)return location.href='auth.html';const {data}=await supabase.from('favorites').select('game_id').eq('user_id',currentUser.id).eq('game_id',game.id).maybeSingle();const r=data?await supabase.from('favorites').delete().eq('user_id',currentUser.id).eq('game_id',game.id):await supabase.from('favorites').insert({user_id:currentUser.id,game_id:game.id});if(r.error)injectNotice(r.error.message);await refreshFav()};
-  const loadComments=async()=>{const {data,error}=await supabase.from('comments').select('id,body,created_at,user_id,profiles(username)').eq('game_id',game.id).order('created_at',{ascending:false});const box=$('[data-comments]',panel);if(error){box.textContent='Comments are temporarily unavailable.';return}box.innerHTML=(data||[]).map(c=>'<article class="p-4 rounded-2xl bg-light-surface-container-low"><div class="flex justify-between gap-3"><b class="text-navy-ink">'+esc(c.profiles?.username||'Player')+'</b><small class="text-light-outline">'+new Date(c.created_at).toLocaleDateString()+'</small></div><p class="mt-2 text-navy-ink">'+esc(c.body)+'</p>'+(isAdmin||c.user_id===currentUser?.id?'<button data-remove-comment="'+c.id+'" class="mt-2 text-sm text-light-error">Remove</button>':'')+'</article>').join('')||'<p class="text-light-outline">No comments yet.</p>';$$('[data-remove-comment]',box).forEach(b=>b.onclick=async()=>{if(confirm('Remove this comment?')){const {error}=await supabase.from('comments').delete().eq('id',b.dataset.removeComment);if(error)injectNotice(error.message);else loadComments()}})};
-  $('[data-comment-form]',panel).onsubmit=async e=>{e.preventDefault();if(!currentUser)return location.href='auth.html';const ta=$('textarea',e.currentTarget),body=ta.value.trim();if(!body)return;const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body});say($('[data-comment-message]',panel),error?.message||'Comment posted.');if(!error){ta.value='';await loadComments()}};
-  await Promise.all([refreshLikes(),refreshFav(),loadComments()]);
   const launch=$$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
-  if(launch){
-    let gameUrl='';
-    try{const parsed=new URL(game.game_url||'');if(['https:','http:'].includes(parsed.protocol))gameUrl=parsed.href}catch{}
-    if(gameUrl){
-      launch.addEventListener('click',async e=>{
-        e.preventDefault();
-        const player=launch.closest('section')?.querySelector('.relative.aspect-video');
-        if(player){
-          player.replaceChildren();
-          const frame=document.createElement('iframe');
-          frame.src=gameUrl;
-          frame.title=game.title+' game';
-          frame.allow='fullscreen; autoplay; gamepad';
-          frame.allowFullscreen=true;
-          frame.referrerPolicy='strict-origin-when-cross-origin';
-          frame.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#081748';
-          player.style.position='relative';
-          player.append(frame);
-          const fallback=document.createElement('a');
-          fallback.href=gameUrl;fallback.target='_blank';fallback.rel='noopener noreferrer';
-          fallback.textContent='If the game does not load, open it on its website ↗';
-          fallback.style.cssText='position:absolute;bottom:10px;left:10px;z-index:5;padding:8px 12px;border-radius:999px;background:rgba(8,23,72,.88);color:white;font:12px sans-serif';
-          player.append(fallback);
-        }else{window.open(gameUrl,'_blank','noopener,noreferrer')}
-        if(currentUser){
-          const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
-          if(settingsRow?.settings?.save_history!==false){
-            const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});
-            if(error)console.warn('Could not save play history:',error.message);
-          }
+  let gameUrl='';
+  try{const parsed=new URL(game.game_url||'');if(['https:','http:'].includes(parsed.protocol))gameUrl=parsed.href}catch{}
+  if(launch&&gameUrl){
+    launch.addEventListener('click',async e=>{
+      e.preventDefault();
+      const player=document.querySelector('.relative.aspect-video');
+      if(player){
+        player.replaceChildren();
+        const frame=document.createElement('iframe');
+        frame.src=gameUrl;frame.title=game.title+' game';frame.allow='fullscreen; autoplay; gamepad';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';
+        frame.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#081748';
+        player.style.position='relative';player.append(frame);
+        const fallback=document.createElement('a');fallback.href=gameUrl;fallback.target='_blank';fallback.rel='noopener noreferrer';fallback.textContent='If the game does not load, open it on its website ↗';
+        fallback.style.cssText='position:absolute;bottom:10px;left:10px;z-index:5;padding:8px 12px;border-radius:999px;background:rgba(8,23,72,.88);color:white;font:12px sans-serif';player.append(fallback);
+      }else window.open(gameUrl,'_blank','noopener,noreferrer');
+      if(currentUser){
+        const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
+        if(settingsRow?.settings?.save_history!==false){
+          const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});
+          if(error)console.warn('Could not save play history:',error.message);
         }
-      });
-    }else{
-      launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This listing is ready, but its game URL has not been added by an admin yet.')});
-    }
+      }
+    });
+  }else if(launch){
+    launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This game does not have a playable URL yet.')});
   }
 }
-
 async function profilePage(){
   if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
   const name=profile.username||currentUser.email?.split('@')[0]||'Player';
@@ -230,13 +201,13 @@ async function profilePage(){
   document.querySelectorAll('h1,h2,h3').forEach(h=>{if(/pixelace_99/i.test(h.textContent))h.textContent=name});
   $$('input').forEach(input=>{if(input.type==='text'&&input.value==='PixelAce_99')input.value=name;if(input.type==='email'&&input.value.includes('@division.gg'))input.value=currentUser.email||''});
   const userName=$$('p,span,div').find(n=>n.childElementCount===0&&n.textContent.trim()==='PixelAce_99');if(userName)userName.textContent=name;
-  const signout=$$('button,a').find(n=>/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
+  const signout=$('button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
   const all=await getGames().catch(()=>[]);
   for(const [table,label] of [['favorites','Favourite Games'],['play_history','Recently Played']]){
     const heading=$$('h2,h3').find(h=>h.textContent.toLowerCase().includes(label.toLowerCase()));
     if(!heading)continue;
     const container=heading.closest('section')||heading.parentElement.parentElement;
-    const grid=document.createElement('div');grid.className='grid grid-cols-2 md:grid-cols-3 gap-4 mt-4';
+    let grid=container.querySelector('.grid');if(!grid){grid=document.createElement('div');container.append(grid)}grid.className='grid grid-cols-2 md:grid-cols-3 gap-4 mt-4';grid.replaceChildren();
     const {data}=await supabase.from(table).select('game_id'+(table==='play_history'?',played_at':'')).eq('user_id',currentUser.id).order(table==='play_history'?'played_at':'created_at',{ascending:false}).limit(12);
     (data||[]).forEach(row=>{const g=all.find(x=>x.id===row.game_id);if(g)grid.append(gameCard(g))});
     if(!grid.children.length)grid.innerHTML='<p class="text-light-outline">No games here yet.</p>';
@@ -244,18 +215,6 @@ async function profilePage(){
   }
   const settings=$$('h2,h3').find(h=>/account settings/i.test(h.textContent));
   if(settings){const section=settings.closest('section')||settings.parentElement.parentElement;const form=document.createElement('form');form.className='mt-4 space-y-3';form.innerHTML='<label class="block text-sm">Username<input name="username" maxlength="24" required class="block mt-2 w-full rounded-xl border p-3" value="'+esc(name)+'"></label><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save profile</button><p data-msg class="text-sm"></p>';section.append(form);form.onsubmit=async e=>{e.preventDefault();const username=form.elements.username.value.trim();const {error}=await supabase.from('profiles').update({username}).eq('id',currentUser.id);say($('[data-msg]',form),error?.message||'Profile saved.');if(!error)location.reload()}}
-}
-
-async function commentsPage(){
-  const gameId=new URLSearchParams(location.search).get('id');
-  let games=[];try{games=await getGames()}catch{}
-  const game=games.find(g=>g.id===gameId)||games[0];if(!game)return;
-  const heading=$$('h1,h2').find(h=>/comments|likes/i.test(h.textContent));if(heading)heading.textContent='Comments & Likes · '+game.title;
-  const area=document.createElement('section');area.className='max-w-5xl mx-auto p-5 space-y-4';area.innerHTML='<div data-thread class="space-y-3"></div><form data-thread-form class="space-y-3"><textarea required maxlength="1200" placeholder="Join the conversation..." class="w-full p-4 rounded-2xl border"></textarea><button class="px-6 py-3 rounded-full bg-navy-ink text-white">Post</button><p data-msg></p></form>';
-  const anchor=heading?.closest('section')||document.querySelector('main');(anchor||document.body).append(area);
-  const load=async()=>{const {data,error}=await supabase.from('comments').select('body,created_at,profiles(username)').eq('game_id',game.id).order('created_at',{ascending:false});$('[data-thread]',area).innerHTML=error?'Unable to load comments.':(data||[]).map(c=>'<article class="p-4 rounded-xl bg-light-surface-container-low"><b>'+esc(c.profiles?.username||'Player')+'</b><p class="mt-2">'+esc(c.body)+'</p></article>').join('')||'<p>No comments yet.</p>'};
-  $('[data-thread-form]',area).onsubmit=async e=>{e.preventDefault();if(!currentUser)return location.href='auth.html';const ta=$('textarea',e.currentTarget);const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body:ta.value.trim()});say($('[data-msg]',area),error?.message||'Posted.');if(!error){ta.value='';load()}};
-  load();
 }
 
 async function adminPage(){
@@ -306,6 +265,6 @@ try{
   if(path==='index.html'||path===''||path==='')await homePage();
   if(path==='game.html')await gamePage();
   if(path==='profile.html')await profilePage();
-  if(path==='comments.html')await commentsPage();
+  
   if(path==='admin.html')await adminPage();
 }catch(error){console.error('Division page integration:',error);injectNotice('Some live features could not load. Refresh the page or check your connection.')}
