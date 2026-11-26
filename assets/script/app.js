@@ -1,6 +1,6 @@
 import {supabase,esc} from './client.js';
 const $=s=>document.querySelector(s);
-const grid=$('#game-grid'),search=$('#game-search'),count=$('#game-count');
+const grid=$('#game-grid'),search=$('#game-search'),count=$('#game-count'),overlay=$('#search-overlay'),overlaySearch=$('#overlay-search'),overlayResults=$('#overlay-results');
 let allGames=[],activeCategory='all';
 $('#year').textContent=new Date().getFullYear();
 function gameCard(game){
@@ -19,7 +19,7 @@ function render(){
  });
  count.textContent=filtered.length;
  if(!filtered.length){grid.innerHTML='<div class="empty-state"><strong>No games found</strong><span>Try another search or category.</span></div>';return}
- grid.innerHTML=filtered.map(gameCard).join('');
+ grid.innerHTML=filtered.map(gameCard).join('');\n if(overlayResults)overlayResults.innerHTML=filtered.length?filtered.slice(0,8).map(gameCard).join(''):'<div class="empty-state">No matching games.</div>';
 }
 async function loadGames(){
  grid.innerHTML='<div class="loading-state"><span class="loader"></span><p>Loading the arcade…</p></div>';
@@ -33,6 +33,6 @@ document.querySelectorAll('[data-category]').forEach(button=>button.addEventList
 }));
 search.addEventListener('input',render);
 $('#search-clear').addEventListener('click',()=>{search.value='';render();search.focus()});
-$('#search-open').addEventListener('click',()=>{search.focus();document.querySelector('#discover').scrollIntoView({behavior:'smooth'})});
+$('#search-open').addEventListener('click',()=>{overlay.hidden=false;overlaySearch.value=search.value;render();overlaySearch.focus()});\n$('#search-close').addEventListener('click',()=>overlay.hidden=true);\noverlay.addEventListener('click',e=>{if(e.target===overlay)overlay.hidden=true});\noverlaySearch.addEventListener('input',()=>{search.value=overlaySearch.value;render()});\ndocument.addEventListener('keydown',e=>{if(e.key==='Escape')overlay.hidden=true});
 try{const {data:{user}}=await supabase.auth.getUser();if(user){const {data:profile}=await supabase.from('profiles').select('username,avatar_url').eq('id',user.id).maybeSingle();const link=$('#account-link');link.href='profile.html';link.innerHTML=esc(profile?.username||'My account')+' <span>↗</span>'}}catch(e){console.warn('Account display unavailable',e)}
 loadGames();
