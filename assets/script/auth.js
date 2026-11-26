@@ -7,6 +7,7 @@ const form=$('#form');
 const submit=$('.auth-submit');
 const googleButton=$('#google-auth');
 const resendButton=$('#resend-verification');
+const forgotButton=$('#forgot-password');
 const message=$('#message');
 const redirectUrl='https://division-games-eight.vercel.app/auth.html';
 
@@ -18,9 +19,10 @@ function setBusy(busy){
   submit.disabled=busy;
   googleButton.disabled=busy;
   resendButton.disabled=busy;
+  if(forgotButton)forgotButton.disabled=busy;
   $('#submit-label').textContent=busy
     ?(mode==='signup'?'Creating account…':'Logging in…')
-    :(mode==='signup'?'Create account':'Log in');
+    :(mode==='signup'?'Create account':mode==='reset'?'Save new password':'Log in');
 }
 function friendlyError(error){
   const text=String(error?.message||error||'Something went wrong.');
@@ -33,6 +35,7 @@ function friendlyError(error){
   return text;
 }
 async function routeSession(session){
+  if(new URLSearchParams(location.search).get('mode')==='reset')return;
   if(!session?.user||redirecting)return;
   redirecting=true;
   setMessage('Signed in. Opening your Division account…');
@@ -49,25 +52,29 @@ async function routeSession(session){
 }
 
 supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){setMode('reset');setMessage('Choose a new password to finish resetting your account.');return}
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session)routeSession(session);
 });
 
 function setMode(next){
   mode=next;
-  const signup=mode==='signup';
+  const signup=mode==='signup',reset=mode==='reset';
   $('#unlabel').hidden=!signup;
   $('#username').required=signup;
   $('#username').autocomplete='nickname';
-  $('#password').autocomplete=signup?'new-password':'current-password';
-  $('#login').classList.toggle('active',!signup);
+  $('#password').autocomplete=signup||reset?'new-password':'current-password';
+  $('#login').hidden=reset;$('#signup').hidden=reset;
+  $('#login').classList.toggle('active',!signup&&!reset);
   $('#signup').classList.toggle('active',signup);
-  $('#login').setAttribute('aria-selected',String(!signup));
+  $('#login').setAttribute('aria-selected',String(!signup&&!reset));
   $('#signup').setAttribute('aria-selected',String(signup));
-  $('#auth-heading').textContent=signup?'Create your account.':'Welcome back.';
+  $('#auth-heading').textContent=signup?'Create your account.':reset?'Choose a new password.':'Welcome back.';
   $('#auth-subtitle').textContent=signup
     ?'Join Division and keep your favourite games in one place.'
-    :'Log in to pick up where you left off.';
-  $('#submit-label').textContent=signup?'Create account':'Log in';
+    :reset?'Enter a new password for your Division account.':'Log in to pick up where you left off.';
+  $('#submit-label').textContent=signup?'Create account':reset?'Save new password':'Log in';
+  if(googleButton)googleButton.hidden=reset;
+  if(forgotButton)forgotButton.hidden=reset;
   resendButton.hidden=true;
   setMessage('');
 }
@@ -96,6 +103,11 @@ form.addEventListener('submit',async event=>{
         resendButton.hidden=false;
         resendButton.dataset.email=email;
       }
+    }else if(mode==='reset'){
+      const {error}=await supabase.auth.updateUser({password});
+      if(error)throw error;
+      setMode('login');
+      setMessage('Password updated. You can now log in.');
     }else{
       const {data,error}=await supabase.auth.signInWithPassword({email,password});
       if(error)throw error;
@@ -122,6 +134,18 @@ googleButton.addEventListener('click',async()=>{
   }
 });
 
+if(forgotButton)forgotButton.addEventListener('click',async()=>{
+  const email=$('#email').value.trim().toLowerCase();
+  if(!email){setMessage('Enter your email address first.','error');$('#email').focus();return}
+  forgotButton.disabled=true;setMessage('Sending password reset email…');
+  try{
+    const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:'https://division-games-eight.vercel.app/auth.html?mode=reset'});
+    if(error)throw error;
+    setMessage('Password reset email requested. Check your inbox and spam folder.');
+  }catch(error){setMessage(friendlyError(error),'error')}
+  finally{forgotButton.disabled=false}
+});
+
 resendButton.addEventListener('click',async()=>{
   const email=resendButton.dataset.email||$('#email').value.trim().toLowerCase();
   if(!email){setMessage('Enter your email address first.','error');return}
@@ -135,5 +159,6 @@ resendButton.addEventListener('click',async()=>{
   finally{resendButton.disabled=false}
 });
 
+if(new URLSearchParams(location.search).get('mode')==='reset')setMode('reset');
 const oauthError=new URLSearchParams(location.search).get('error_description');
 if(oauthError)setMessage(decodeURIComponent(oauthError.replace(/\+/g,' ')),'error');
