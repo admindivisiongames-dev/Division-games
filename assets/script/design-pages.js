@@ -4,7 +4,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const say = (node, message) => { if (node) node.textContent = message; };
 const currentUser = await user().catch(()=>null);
-const profileResult = currentUser ? await supabase.from('profiles').select('username,role').eq('id',currentUser.id).maybeSingle() : {data:null};
+const profileResult = currentUser ? await supabase.from('profiles').select('username,role,avatar_url').eq('id',currentUser.id).maybeSingle() : {data:null};
 const profile = profileResult.data || {};
 const ADMIN_EMAIL = 'admin.division.games@gmail.com';
 const isAdmin = profile.role === 'admin' && currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
@@ -45,6 +45,12 @@ function wireNavigation(){
   }
 }
 wireNavigation();
+
+function applyProfileAvatar(url){
+  if(!url)return;
+  $('a[href="profile.html"] img').forEach(img=>{img.src=url;img.alt='Your profile picture'});
+}
+applyProfileAvatar(profile.avatar_url);
 
 async function homePage(){
   let games=[];
@@ -181,7 +187,47 @@ async function gamePage(){
 async function profilePage(){
   if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
   const name=profile.username||currentUser.email?.split('@')[0]||'Player';
-  $$('h1,h2,h3').forEach(h=>{if(/pixelace_99/i.test(h.textContent))h.textContent=name});
+  const profileImages=$('img').filter(img=>/avatar|profile picture/i.test(img.alt));
+  profileImages.forEach(img=>{if(profile.avatar_url){img.src=profile.avatar_url;img.alt='Your profile picture'}});
+  const mainAvatar=profileImages.find(img=>/profile picture/i.test(img.alt))||profileImages[0];
+  if(mainAvatar&&!mainAvatar.dataset.uploadControl){
+    mainAvatar.dataset.uploadControl='true';
+    const wrapper=document.createElement('div');
+    wrapper.className='flex flex-col items-center gap-2 shrink-0';
+    mainAvatar.parentElement.insertBefore(wrapper,mainAvatar);
+    wrapper.append(mainAvatar);
+    mainAvatar.className='w-20 h-20 rounded-xl object-cover shadow-md border-2 border-section-turquoise';
+    const picker=document.createElement('input');
+    picker.type='file';picker.accept='image/png,image/jpeg,image/webp';picker.hidden=true;
+    const choose=document.createElement('button');
+    choose.type='button';choose.textContent='Change photo';
+    choose.className='px-3 py-1.5 rounded-full bg-navy-ink text-white text-xs font-label';
+    choose.addEventListener('click',()=>picker.click());
+    const status=document.createElement('p');status.className='text-xs text-light-outline text-center';status.setAttribute('aria-live','polite');
+    picker.addEventListener('change',async()=>{
+      const file=picker.files?.[0];if(!file)return;
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type)){status.textContent='Choose a JPG, PNG or WebP image.';picker.value='';return}
+      if(file.size>3*1024*1024){status.textContent='Image must be 3 MB or smaller.';picker.value='';return}
+      choose.disabled=true;status.textContent='Uploading photo…';
+      try{
+        const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+        const path=currentUser.id+'/avatar.'+ext;
+        const {error:uploadError}=await supabase.storage.from('avatars').upload(path,file,{cacheControl:'3600',upsert:true,contentType:file.type});
+        if(uploadError)throw uploadError;
+        const {data}=supabase.storage.from('avatars').getPublicUrl(path);
+        const avatarUrl=data.publicUrl+'?v='+Date.now();
+        const {error:profileError}=await supabase.from('profiles').update({avatar_url:avatarUrl}).eq('id',currentUser.id);
+        if(profileError)throw profileError;
+        profile.avatar_url=avatarUrl;
+        profileImages.forEach(img=>{img.src=avatarUrl;img.alt='Your profile picture'});
+        applyProfileAvatar(avatarUrl);
+        status.textContent='Profile photo updated.';
+      }catch(error){status.textContent=error.message||'Could not upload photo. Please try again.'}
+      finally{choose.disabled=false;picker.value=''}
+    });
+    wrapper.append(choose,picker,status);
+  }
+  $('h1,h2,h3').forEach(h=>{if(/pixelace_99/i.test(h.textContent))h.textContent=name});
   $$('input').forEach(input=>{if(input.type==='text'&&input.value==='PixelAce_99')input.value=name;if(input.type==='email'&&input.value.includes('@division.gg'))input.value=currentUser.email||''});
   const userName=$$('p,span,div').find(n=>n.childElementCount===0&&n.textContent.trim()==='PixelAce_99');if(userName)userName.textContent=name;
   const signout=$$('button,a').find(n=>/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
