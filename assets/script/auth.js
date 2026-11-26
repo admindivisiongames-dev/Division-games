@@ -35,7 +35,7 @@ function friendlyError(error){
   return text;
 }
 async function routeSession(session){
-  if(new URLSearchParams(location.search).get('mode')==='reset')return;
+  if(mode==='reset')return;
   if(!session?.user||redirecting)return;
   redirecting=true;
   setMessage('Signed in. Opening your Division account…');
