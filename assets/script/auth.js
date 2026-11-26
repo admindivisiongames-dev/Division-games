@@ -8,7 +8,7 @@ const message=$('#message');
 
 supabase.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_IN'&&session){
-    window.location.replace('profile.html');
+    message.textContent='Signed in successfully.';
   }
 });
 
@@ -43,14 +43,16 @@ form.addEventListener('submit',async event=>{
   message.textContent='';
   try{
     const result=mode==='signup'
-      ?await supabase.auth.signUp({email,password,options:{data:{username},emailRedirectTo:`${window.location.origin}/auth.html`}})
+      ?await supabase.auth.signUp({email,password,options:{data:{username},emailRedirectTo:'https://division-games-eight.vercel.app/auth.html'}})
       :await supabase.auth.signInWithPassword({email,password});
     if(result.error)throw result.error;
     if(mode==='signup'&&!result.data.session){
       message.textContent='Account created. Check your email to confirm, then log in.';
     }else if(result.data.session){
-      message.textContent='You’re in! Taking you to your profile…';
-      setTimeout(()=>location.href='profile.html',650);
+      const next=new URLSearchParams(location.search).get('next');
+      const destination=next==='admin'?'admin.html':'profile.html';
+      message.textContent=destination==='admin'?'Signed in. Opening admin…':'You’re in! Taking you to your profile…';
+      setTimeout(()=>location.href=destination,350);
     }else{
       message.textContent='Please check your email to continue.';
     }
