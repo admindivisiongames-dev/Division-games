@@ -40,7 +40,7 @@ async function routeSession(session){
     const {data,error}=await supabase.from('profiles').select('role').eq('id',session.user.id).maybeSingle();
     if(error)throw error;
     const next=new URLSearchParams(location.search).get('next');
-    const destination=(next==='admin'||data?.role==='admin')?'admin.html':'profile.html';
+    const destination=(next==='admin'||data?.role==='admin')?'admin.html':next==='settings'?'settings.html':'profile.html';
     location.replace(destination);
   }catch(error){
     redirecting=false;
