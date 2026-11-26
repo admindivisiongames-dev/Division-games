@@ -398,8 +398,12 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
   <footer class="bg-navy-ink text-light-surface-container-lowest py-10 px-6">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
       <div class="flex items-center gap-3">
-        <span class="w-8 h-8 rounded-DEFAULT bg-section-turquoise flex items-center justify-center">
-          <span class="w-3.5 h-3.5 rounded-sm bg-navy-ink rotate-12 inline-block"></span>
+        <span class="w-8 h-8 rounded-[7px] bg-section-turquoise flex flex-col items-center justify-center gap-[2px]" aria-hidden="true">
+          <span class="w-[18px] h-[15px] rounded-[5px] bg-navy-ink flex items-center justify-center gap-[3px]">
+            <span class="w-[4px] h-[5px] rounded-full bg-section-turquoise inline-block"></span>
+            <span class="w-[4px] h-[5px] rounded-full bg-section-turquoise inline-block"></span>
+          </span>
+          <span class="w-[12px] h-[5px] border-b-2 border-navy-ink rounded-b-full"></span>
         </span>
         <div>
           <p data-design-text-token="title-lg" class="font-display text-title-lg">DIVISION</p>
