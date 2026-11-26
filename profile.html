@@ -47,14 +47,16 @@
     </section>
     <section class="rounded-3xl border border-line/60 bg-white p-6 shadow-sm">
       <h2 class="font-display text-2xl font-semibold">Account Settings</h2>
-      <p class="mt-1 text-sm text-slate-600">Update the name shown on your Division profile.</p>
+      <p class="mt-1 text-sm text-slate-600">Update your profile photo and the name shown to other players.</p>
+      <div class="mt-5 flex flex-wrap items-center gap-4"><img data-profile-photo src="assets/icons/avatar.svg" alt="Your profile photo" class="h-20 w-20 rounded-2xl border-2 border-mint object-cover"><div><label class="inline-block cursor-pointer rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white">Upload photo<input data-avatar-file type="file" accept="image/png,image/jpeg,image/webp" class="sr-only"></label><p class="mt-2 text-xs text-slate-500">JPG, PNG or WebP · max 3 MB</p><p data-avatar-message class="mt-1 text-sm" aria-live="polite"></p></div></div>
+      <form data-profile-form class="mt-5 max-w-xl space-y-3"><label class="block text-sm font-semibold">Username<input data-profile-username name="username" maxlength="24" required class="mt-2 block w-full rounded-xl border border-line p-3 font-normal"></label><button class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit">Save profile</button><p data-profile-message class="text-sm" aria-live="polite"></p></form>
     </section>
   </main>
   <footer class="mt-10 bg-navy px-4 py-8 text-center text-sm text-white/80">
     <a href="index.html" class="font-display text-lg font-semibold text-white">DIVISION</a>
     <p class="mt-1">Let the world play.</p>
   </footer>
-  <script type="module" src="assets/script/design-pages.js?v=20261126-profile"></script>
+  <script type="module" src="assets/script/design-pages.js?v=20261126-profile-fix1"></script>
   <script type="module" src="assets/script/app-settings.js"></script>
 </body>
 </html>
