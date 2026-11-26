@@ -6,7 +6,8 @@ const say = (node, message) => { if (node) node.textContent = message; };
 const currentUser = await user().catch(()=>null);
 const profileResult = currentUser ? await supabase.from('profiles').select('username,role').eq('id',currentUser.id).maybeSingle() : {data:null};
 const profile = profileResult.data || {};
-const isAdmin = profile.role === 'admin';
+const ADMIN_EMAIL = 'admin.division.games@gmail.com';
+const isAdmin = profile.role === 'admin' && currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
 
 async function getGames(showUnpublished=false) {
   let q = supabase.from('games').select('*').order('created_at',{ascending:false});
@@ -216,8 +217,11 @@ async function adminPage(){
   if(!currentUser||!isAdmin){
     const notice=document.createElement('section');notice.className='max-w-4xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink';
     notice.innerHTML='<h2 class="font-display text-2xl mb-3">Admin access required</h2><p class="font-body mb-4">'+(!currentUser?'Sign in with your admin account to manage Division.':'This account does not have the admin role.')+'</p><a class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white" href="'+(!currentUser?'auth.html?next=admin':'index.html')+'">'+(!currentUser?'Sign in':'Back to games')+'</a>';
-    main.replaceChildren(notice);return;
+    main.replaceChildren(notice);
+    document.body.style.visibility='visible';
+    return;
   }
+  document.body.style.visibility='visible';
   const heading=$$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
   const section=heading?.closest('section')||heading?.parentElement?.parentElement||main;
   const form=document.createElement('form');form.id='add-game';form.className='my-6 p-5 md:p-7 rounded-3xl bg-light-surface-container-low border border-light-outline-variant space-y-3';
