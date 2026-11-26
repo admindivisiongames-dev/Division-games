@@ -209,18 +209,13 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
       </div>
 
       <!-- Right Actions -->
-      <div class="flex items-center gap-2 shrink-0">
+      <div id="division-account-nav" class="flex items-center gap-2 shrink-0" aria-live="polite">
         <a href="index.html#games" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-light-surface-container-low hover:bg-section-blue/60 text-navy-ink transition-colors duration-state-change">
           <span class="material-symbols-outlined text-title-md" aria-hidden="true">explore</span>
-          <span data-design-text-token="label-md" class="font-label text-label-md">Explore</span>
+          <span class="font-label text-label-md">Explore</span>
         </a>
-        <a href="admin.html" class="w-10 h-10 rounded-full flex items-center justify-center bg-light-surface-container-low hover:bg-section-purple/50 text-navy-ink transition-colors duration-state-change" title="Admin Dashboard" aria-label="Admin Dashboard">
-          <span class="material-symbols-outlined text-title-md">admin_panel_settings</span>
-        </a>
-        <a href="profile.html" class="inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1 rounded-full bg-navy-ink text-light-surface-container-lowest hover:bg-light-secondary transition-colors duration-state-change">
-          <img src="https://lh3.googleusercontent.com/aida/ALJJyrAi3gne5lGo2xIj47l5tz8WoMprmvYGJE85uLfQPL5QOFcr20c2ldR4vRD43CyRDSZcYJLcf0FpnmoTWaTOb7tMW4l0cGKPGsodONuY6NS2mtMs_pry2bTNcJBwt8LnDcdeXXD6k1qHc99fpB1cCeNrXly9cpZUWVviZodjIUZNKnLXhEjvioKGPQiN2d-A0p41KeQOdOpFJv9yEnC7slFt9e8j1k9k-6feYVRsOimQYalCphPa" alt="PixelAce_99 avatar" class="w-7 h-7 rounded-full object-cover">
-          <span data-design-text-token="label-md" class="font-label text-label-md hidden sm:inline">PixelAce_99</span>
-        </a>
+        <a href="auth.html" class="inline-flex items-center justify-center px-4 py-2 rounded-full bg-navy-ink text-white hover:bg-light-primary transition-colors text-sm font-semibold">Log in</a>
+        <a href="auth.html?mode=signup" class="inline-flex items-center justify-center px-4 py-2 rounded-full bg-section-yellow text-navy-ink hover:brightness-95 transition-colors text-sm font-semibold">Sign up</a>
       </div>
     </nav>
   </header>
@@ -630,4 +625,57 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
 
 
   <script type="module" src="assets/script/design-pages.js"></script>
+  <script type="module">
+    import { supabase } from './assets/script/client.js';
+    const accountNav = document.getElementById('division-account-nav');
+    const authLink = (href, text, style) => {
+      const a = document.createElement('a');
+      a.href = href; a.textContent = text; a.className = style;
+      return a;
+    };
+    const buttonStyle = 'inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-semibold transition-colors';
+    async function renderAccount(user) {
+      if (!accountNav) return;
+      const explore = accountNav.querySelector('a[href="index.html#games"]');
+      accountNav.replaceChildren();
+      if (explore) accountNav.append(explore);
+      if (!user) {
+        accountNav.append(
+          authLink('auth.html', 'Log in', buttonStyle + ' bg-navy-ink text-white hover:bg-light-primary'),
+          authLink('auth.html?mode=signup', 'Sign up', buttonStyle + ' bg-section-yellow text-navy-ink hover:brightness-95')
+        );
+        return;
+      }
+      let role = 'user', username = user.user_metadata?.username || user.email?.split('@')[0] || 'Player';
+      try {
+        const { data } = await supabase.from('profiles').select('username,role').eq('id', user.id).maybeSingle();
+        if (data) { username = data.username || username; role = data.role || role; }
+      } catch (e) { console.warn('Could not load account profile', e); }
+      if (role === 'admin') {
+        accountNav.append(authLink('admin.html', 'Admin', buttonStyle + ' bg-section-purple text-navy-ink'));
+      }
+      const profile = authLink('profile.html', username, buttonStyle + ' bg-navy-ink text-white hover:bg-light-primary');
+      profile.title = 'Open your Division profile';
+      profile.style.maxWidth = '150px'; profile.style.overflow = 'hidden'; profile.style.textOverflow = 'ellipsis'; profile.style.whiteSpace = 'nowrap';
+      accountNav.append(profile);
+      const logout = document.createElement('button');
+      logout.type = 'button'; logout.textContent = 'Log out';
+      logout.className = buttonStyle + ' border border-navy-ink/20 text-navy-ink bg-white hover:bg-section-pink/50';
+      logout.addEventListener('click', async () => {
+        logout.disabled = true; logout.textContent = 'Logging out…';
+        const { error } = await supabase.auth.signOut();
+        if (error) { logout.disabled = false; logout.textContent = 'Log out'; alert('Could not log out. Please try again.'); }
+        else location.reload();
+      });
+      accountNav.append(logout);
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    await renderAccount(session?.user || null);
+    supabase.auth.onAuthStateChange((_event, session) => { renderAccount(session?.user || null); });
+    const signupTab = new URLSearchParams(location.search).get('mode') === 'signup';
+    if (signupTab) {
+      // Keep signup link intent available on the auth page without requiring framework routing.
+      document.querySelectorAll('a[href="auth.html?mode=signup"]').forEach(a => a.href = 'auth.html?mode=signup');
+    }
+  </script>
 </body></html>
