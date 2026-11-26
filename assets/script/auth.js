@@ -53,7 +53,7 @@ async function routeSession(session){
 
 supabase.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){setMode('reset');setMessage('Choose a new password to finish resetting your account.');return}
-  if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session)routeSession(session);
+  if(event==='SIGNED_IN'&&session)routeSession(session);
 });
 
 function setMode(next){
@@ -79,7 +79,15 @@ function setMode(next){
   setMessage('');
 }
 $('#login').addEventListener('click',()=>setMode('login'));
-$('#signup').addEventListener('click',()=>setMode('signup'));
+$('#signup').addEventListener('click',async()=>{
+  setMode('signup');
+  const {data:{session}}=await supabase.auth.getSession();
+  if(session){
+    const {error}=await supabase.auth.signOut();
+    if(error){setMessage('Could not switch accounts: '+friendlyError(error),'error');return}
+    setMessage('Signed out of the current account. Create your new Division account below.');
+  }
+});
 
 form.addEventListener('submit',async event=>{
   event.preventDefault();
