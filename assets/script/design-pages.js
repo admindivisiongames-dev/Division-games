@@ -86,7 +86,7 @@ async function homePage(){
       const q=search.value.toLowerCase().trim();
       const active=!!q;
       results.hidden=!active;
-      homeSections.forEach(node=>node.hidden=active);
+      homeSections.forEach(node=>{node.hidden=active;node.style.display=active?'none':''});
       if(!active)return;
       const matches=games.filter(g=>([g.title,g.category,g.description,g.instructions].filter(Boolean).join(' ')).toLowerCase().includes(q));
       resultGrid.replaceChildren(...matches.map(gameCard));
