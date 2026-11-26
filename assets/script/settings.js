@@ -9,6 +9,7 @@ function apply(){
   const dark=prefs.theme==='dark'||(prefs.theme==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
   document.body.classList.toggle('dark',dark);
   document.documentElement.style.scrollBehavior=prefs.reduced_motion?'auto':'smooth';
+  document.documentElement.classList.toggle('reduce-motion',!!prefs.reduced_motion);
   document.documentElement.dataset.reducedMotion=prefs.reduced_motion?'true':'false';
   document.documentElement.dataset.muteGames=prefs.mute_games?'true':'false';
 }
