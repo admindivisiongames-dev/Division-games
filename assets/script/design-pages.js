@@ -118,7 +118,23 @@ async function gamePage(){
   $('[data-comment-form]',panel).onsubmit=async e=>{e.preventDefault();if(!currentUser)return location.href='auth.html';const ta=$('textarea',e.currentTarget),body=ta.value.trim();if(!body)return;const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body});say($('[data-comment-message]',panel),error?.message||'Comment posted.');if(!error){ta.value='';await loadComments()}};
   await Promise.all([refreshLikes(),refreshFav(),loadComments()]);
   const launch=$$('a,button').find(a=>/play now|launch game|play game/i.test(a.textContent));
-  if(launch){if(game.game_url){launch.href=game.game_url;launch.target='_blank';launch.rel='noopener noreferrer'}else{launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This listing is ready, but its game URL has not been added by an admin yet.')})}}
+  if(launch){
+    let gameUrl='';
+    try{const parsed=new URL(game.game_url||'');if(['https:','http:'].includes(parsed.protocol))gameUrl=parsed.href}catch{}
+    if(gameUrl){
+      launch.href=gameUrl;launch.target='_blank';launch.rel='noopener noreferrer';
+      if(currentUser)launch.addEventListener('click',async e=>{
+        e.preventDefault();
+        const opened=window.open('about:blank','_blank');
+        const {error}=await supabase.from('play_history').insert({user_id:currentUser.id,game_id:game.id});
+        if(error)console.warn('Could not save play history:',error.message);
+        if(opened){opened.opener=null;opened.location.replace(gameUrl)}
+        else location.href=gameUrl;
+      });
+    }else{
+      launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This listing is ready, but its game URL has not been added by an admin yet.')});
+    }
+  }
 }
 
 async function profilePage(){
