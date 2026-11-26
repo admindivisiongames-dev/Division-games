@@ -50,7 +50,9 @@ form.addEventListener('submit',async event=>{
       message.textContent='Account created. Check your email to confirm, then log in.';
     }else if(result.data.session){
       const next=new URLSearchParams(location.search).get('next');
-      const destination=next==='admin'?'admin.html':'profile.html';
+      const {data:profileData,error:profileError}=await supabase.from('profiles').select('role').eq('id',result.data.session.user.id).maybeSingle();
+      if(profileError)throw profileError;
+      const destination=(next==='admin'||profileData?.role==='admin')?'admin.html':'profile.html';
       message.textContent=destination==='admin'?'Signed in. Opening admin…':'You’re in! Taking you to your profile…';
       setTimeout(()=>location.href=destination,350);
     }else{
