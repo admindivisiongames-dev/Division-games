@@ -48,7 +48,7 @@ wireNavigation();
 
 function applyProfileAvatar(url){
   if(!url)return;
-  document.querySelectorAll('a[href="profile.html"] img').forEach(img=>{img.src=url;img.alt='Your profile picture'});
+  document.querySelectorAll('a[href="profile.html"] img').forEach(img=>{img.src=url;img.alt='Profile avatar'});
 }
 applyProfileAvatar(profile.avatar_url);
 
