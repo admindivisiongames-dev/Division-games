@@ -48,29 +48,13 @@
       <p data-game-description class="mt-2 text-sm text-slate-600">Loading game details from Division.</p>
     </section>
   
-    <section data-community class="rounded-3xl border border-line/60 bg-white p-6">
-      <div class="mb-5 flex items-center justify-between gap-3">
-        <h2 class="font-display text-2xl font-semibold">Game discussion</h2>
-        <span class="text-sm text-slate-500"><span data-comments-count>0</span> comments</span>
-      </div>
-      <form data-comment-form class="mb-6 space-y-3">
-        <label class="block text-sm font-semibold" for="division-comment-input">Join the discussion</label>
-        <textarea id="division-comment-input" data-comment-input maxlength="1200" rows="3" required placeholder="Share your thoughts about this game…" class="block w-full rounded-xl border border-line p-3 text-sm"></textarea>
-        <div class="flex flex-wrap items-center gap-3">
-          <button data-submit-comment type="submit" class="rounded-full bg-navy px-5 py-2.5 text-sm font-semibold text-white">Post comment</button>
-          <button data-cancel-reply type="button" hidden class="rounded-full border border-line px-5 py-2.5 text-sm font-semibold">Cancel reply</button>
-          <p data-comment-status class="text-sm" aria-live="polite"></p>
-        </div>
-      </form>
-      <div data-comments-list class="space-y-4"></div>
-    </section>
+
 </main>
   <footer class="mt-10 bg-navy px-4 py-8 text-center text-sm text-white/80">
     <a href="index.html" class="font-display text-lg font-semibold text-white">DIVISION</a>
     <p class="mt-1">Let the world play.</p>
   </footer>
   <script type="module" src="assets/script/design-pages.js"></script>
-  <script type="module" src="assets/script/community.js?v=20261126-community1"></script>
   <script type="module" src="assets/script/app-settings.js"></script>
 </body>
 </html>
