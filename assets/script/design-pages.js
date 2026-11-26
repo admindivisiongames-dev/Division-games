@@ -188,8 +188,8 @@ async function profilePage(){
   if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
   const name=profile.username||currentUser.email?.split('@')[0]||'Player';
   const profileImages=$('img').filter(img=>/avatar|profile picture/i.test(img.alt));
-  profileImages.forEach(img=>{if(profile.avatar_url){img.src=profile.avatar_url;img.alt='Your profile picture'}});
   const mainAvatar=profileImages.find(img=>/profile picture/i.test(img.alt))||profileImages[0];
+  profileImages.forEach(img=>{if(profile.avatar_url){img.src=profile.avatar_url;img.alt='Your profile picture'}});
   if(mainAvatar&&!mainAvatar.dataset.uploadControl){
     mainAvatar.dataset.uploadControl='true';
     const wrapper=document.createElement('div');
