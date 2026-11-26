@@ -642,7 +642,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
       if (!user) {
         footer.append(authLink('profile.html','My Profile',linkStyle),authLink('auth.html','Log In',linkStyle),authLink('auth.html?mode=signup','Create Account',linkStyle));
       } else {
-        footer.append(authLink('profile.html','My Profile',linkStyle));
+        footer.append(authLink('profile.html','My Profile',linkStyle),authLink('settings.html','Settings',linkStyle));
         if (role === 'admin') footer.append(authLink('admin.html','Admin',linkStyle));
       }
     }
@@ -671,7 +671,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
       const profile = authLink('profile.html', username, buttonStyle + ' bg-navy-ink text-white hover:bg-light-primary');
       profile.title = 'Open your Division profile';
       profile.style.maxWidth = '150px'; profile.style.overflow = 'hidden'; profile.style.textOverflow = 'ellipsis'; profile.style.whiteSpace = 'nowrap';
-      accountNav.append(profile);
+      accountNav.append(profile, authLink('settings.html', 'Settings', buttonStyle + ' border border-navy-ink/20 text-navy-ink bg-white hover:bg-section-pink/50'));
       const logout = document.createElement('button');
       logout.type = 'button'; logout.textContent = 'Log out';
       logout.className = buttonStyle + ' border border-navy-ink/20 text-navy-ink bg-white hover:bg-section-pink/50';
