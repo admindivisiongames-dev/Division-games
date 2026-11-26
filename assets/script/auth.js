@@ -37,7 +37,7 @@ form.addEventListener('submit',async event=>{
   message.textContent='';
   try{
     const result=mode==='signup'
-      ?await supabase.auth.signUp({email,password,options:{data:{username}}})
+      ?await supabase.auth.signUp({email,password,options:{data:{username},emailRedirectTo:`${window.location.origin}/auth.html`}})
       :await supabase.auth.signInWithPassword({email,password});
     if(result.error)throw result.error;
     if(mode==='signup'&&!result.data.session){
