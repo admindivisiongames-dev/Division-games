@@ -628,6 +628,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
   <script type="module">
     import { supabase } from './assets/script/client.js';
     const accountNav = document.getElementById('division-account-nav');
+    const ADMIN_EMAIL = 'admin.division.games@gmail.com';
     const authLink = (href, text, style) => {
       const a = document.createElement('a');
       a.href = href; a.textContent = text; a.className = style;
@@ -664,6 +665,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
         const { data } = await supabase.from('profiles').select('username,role').eq('id', user.id).maybeSingle();
         if (data) { username = data.username || username; role = data.role || role; }
       } catch (e) { console.warn('Could not load account profile', e); }
+      if (user.email?.toLowerCase() !== ADMIN_EMAIL) role = 'user';
       renderFooter(user, role);
       if (role === 'admin') {
         accountNav.append(authLink('admin.html', 'Admin', buttonStyle + ' bg-section-purple text-navy-ink'));
