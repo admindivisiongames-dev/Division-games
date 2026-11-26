@@ -2,6 +2,7 @@ import {supabase} from './client.js';
 
 let mode='login';
 let redirecting=false;
+let creatingAccount=false;
 const $=s=>document.querySelector(s);
 const form=$('#form');
 const submit=$('.auth-submit');
@@ -53,7 +54,7 @@ async function routeSession(session){
 
 supabase.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){setMode('reset');setMessage('Choose a new password to finish resetting your account.');return}
-  if(event==='SIGNED_IN'&&session)routeSession(session);
+  if(event==='SIGNED_IN'&&session&&!creatingAccount)routeSession(session);
 });
 
 function setMode(next){
@@ -100,17 +101,21 @@ form.addEventListener('submit',async event=>{
   setMessage('');
   try{
     if(mode==='signup'){
+      creatingAccount=true;
       const {data,error}=await supabase.auth.signUp({
         email,password,
         options:{data:{username},emailRedirectTo:redirectUrl}
       });
       if(error)throw error;
-      if(data.session){await routeSession(data.session)}
-      else{
-        setMessage('Account created. Check your inbox and spam folder for the verification link.');
-        resendButton.hidden=false;
-        resendButton.dataset.email=email;
+      // Newly created accounts must never be routed through the admin redirect.
+      if(data.session){
+        const {error:signOutError}=await supabase.auth.signOut();
+        if(signOutError)throw signOutError;
       }
+      creatingAccount=false;
+      setMessage('Account created. Please log in to continue.');
+      resendButton.hidden=false;
+      resendButton.dataset.email=email;
     }else if(mode==='reset'){
       const {error}=await supabase.auth.updateUser({password});
       if(error)throw error;
@@ -122,6 +127,7 @@ form.addEventListener('submit',async event=>{
       await routeSession(data.session);
     }
   }catch(error){
+    creatingAccount=false;
     setMessage(friendlyError(error),'error');
   }finally{setBusy(false)}
 });
