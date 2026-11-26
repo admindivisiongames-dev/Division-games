@@ -69,12 +69,37 @@ async function homePage(){
     a.dataset.gameTitle=g.title.toLowerCase();a.dataset.gameCategory=(g.category||'').toLowerCase();
   });
   const search=$('input[type="search"][aria-label="Search games"]');
-  const filter=()=>{
-    const q=(search?.value||'').toLowerCase().trim();
-    $$('a[data-game-title]').forEach(a=>a.hidden=!(a.dataset.gameTitle+' '+a.dataset.gameCategory).includes(q));
-    $$('[data-live-games] a').forEach(a=>a.hidden=!((a.textContent||'').toLowerCase().includes(q)));
-  };
-  search?.addEventListener('input',filter);
+  if(search){
+    search.placeholder='Search games by name or category...';
+    const main=$('main');
+    const homeSections=[...(main?.children||[])];
+    const results=document.createElement('section');
+    results.className='max-w-7xl mx-auto w-full px-5 py-8';
+    results.hidden=true;
+    results.setAttribute('aria-live','polite');
+    results.innerHTML='<div class="flex items-center justify-between gap-3 mb-5"><h2 class="font-display text-2xl text-navy-ink" data-search-heading>Search results</h2><span class="text-sm text-light-outline" data-search-count></span></div><div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" data-search-results></div><p class="mt-5 text-center text-light-outline" data-search-empty hidden>No games match that search. Try another title or category.</p>';
+    main?.prepend(results);
+    const resultGrid=$('[data-search-results]',results);
+    const countNode=$('[data-search-count]',results);
+    const emptyNode=$('[data-search-empty]',results);
+    const runSearch=()=>{
+      const q=search.value.toLowerCase().trim();
+      const active=!!q;
+      results.hidden=!active;
+      homeSections.forEach(node=>node.hidden=active);
+      if(!active)return;
+      const matches=games.filter(g=>([g.title,g.category,g.description,g.instructions].filter(Boolean).join(' ')).toLowerCase().includes(q));
+      resultGrid.replaceChildren(...matches.map(gameCard));
+      countNode.textContent=matches.length+' game'+(matches.length===1?'':'s');
+      emptyNode.hidden=matches.length>0;
+    };
+    search.addEventListener('input',runSearch);
+    search.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){search.value='';runSearch();search.blur()}
+    });
+    const searchForm=search.closest('form');
+    searchForm?.addEventListener('submit',e=>{e.preventDefault();runSearch()});
+  }
   const categoryLinks=$$('a').filter(a=>/all games|action|adventure|racing|puzzle|multiplayer|simulation|driving/i.test(a.textContent.trim())&&!a.href.includes('game.html'));
   categoryLinks.forEach(a=>a.addEventListener('click',e=>{
     const label=a.textContent.trim().toLowerCase();
