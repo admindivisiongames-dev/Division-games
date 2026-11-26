@@ -39,9 +39,15 @@ function injectNotice(text){
   return n;
 }
 function wireNavigation(){
-  const navLinks=$$('a[href="auth.html"],a[href="profile.html"],a[href="index.html"]');
+  const navLinks=$('a[href="auth.html"],a[href="profile.html"],a[href="index.html"]');
   if(currentUser){
     navLinks.filter(a=>/sign in|log in|create account/i.test(a.textContent)).forEach(a=>{a.href='profile.html';a.textContent=profile.username||'My Profile'});
+    $('a[href="profile.html"]').forEach(a=>{
+      const textNode=Array.from(a.childNodes).find(n=>n.nodeType===3&&n.textContent.trim());
+      if(textNode)textNode.textContent=profile.username||'My Profile';
+      else if(!a.querySelector('img'))a.textContent=profile.username||'My Profile';
+      const img=a.querySelector('img');if(img&&profile.avatar_url)img.src=profile.avatar_url;
+    });
   }
 }
 wireNavigation();
@@ -198,10 +204,8 @@ async function profilePage(){
     });
     wrapper.append(choose,picker,status);
   }
-  document.querySelectorAll('h1,h2,h3').forEach(h=>{if(/pixelace_99/i.test(h.textContent))h.textContent=name});
-  $$('input').forEach(input=>{if(input.type==='text'&&input.value==='PixelAce_99')input.value=name;if(input.type==='email'&&input.value.includes('@division.gg'))input.value=currentUser.email||''});
-  const userName=$$('p,span,div').find(n=>n.childElementCount===0&&n.textContent.trim()==='PixelAce_99');if(userName)userName.textContent=name;
-  const signout=$('button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
+  document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=name});
+  const signout=$('[data-signout],button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
   const all=await getGames().catch(()=>[]);
   for(const [table,label] of [['favorites','Favourite Games'],['play_history','Recently Played']]){
     const heading=$$('h2,h3').find(h=>h.textContent.toLowerCase().includes(label.toLowerCase()));
@@ -227,7 +231,18 @@ async function adminPage(){
     return;
   }
   document.body.style.visibility='visible';
-  const heading=$$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
+  const metricQueries=[
+    ['Total Games',supabase.from('games').select('id',{count:'exact',head:true}).eq('published',true)],
+    ['Registered Users',supabase.from('profiles').select('id',{count:'exact',head:true})],
+    ['Total Likes',supabase.from('likes').select('id',{count:'exact',head:true})]
+  ];
+  const metricResults=await Promise.all(metricQueries.map(async([label,query])=>({label,...await query})));
+  metricResults.forEach(({label,count,error})=>{
+    const card=$('article').find(node=>node.querySelector('span')?.textContent.trim()===label);
+    const value=card?.querySelector('[data-live-metric]');
+    if(value)value.textContent=error?'—':(count??0).toLocaleString();
+  });
+  const heading=$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
   const section=heading?.closest('section')||heading?.parentElement?.parentElement||main;
   const form=document.createElement('form');form.id='add-game';form.className='my-6 p-5 md:p-7 rounded-3xl bg-light-surface-container-low border border-light-outline-variant space-y-3';
   form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="image_url" type="url" placeholder="Game image URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><label class="flex items-center gap-2"><input name="is_demo" type="checkbox"> Demo listing</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
