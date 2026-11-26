@@ -194,12 +194,12 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 data-design-text-token="display-md" class="font-display text-display-md text-navy-ink">Platform Overview</h1>
-          <p data-design-text-token="body-md" class="font-body text-body-md text-light-on-surface-variant">Manage games, categories, registered Supabase users, and community comments.</p>
+          <p data-design-text-token="body-md" class="font-body text-body-md text-light-on-surface-variant">Manage your published games and live platform totals.</p>
         </div>
         <span class="px-3.5 py-1.5 rounded-full bg-section-turquoise/60 text-navy-ink font-label text-label-sm">Supabase Connected · Admin Role</span>
       </div>
 
-      <!-- 4 Analytics KPI Cards -->
+      <!-- Live platform totals -->
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <article data-component-id="card-elevated" data-component-type="card" data-component-variant="elevated" class="rounded-lg bg-light-surface-container-lowest p-5 shadow-md border border-light-outline-variant/40 flex flex-col gap-2">
           <div class="flex items-center justify-between">
@@ -208,8 +208,8 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
               <span class="material-symbols-outlined text-title-md">sports_esports</span>
             </span>
           </div>
-          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums">1,284</p>
-          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-primary">+14 published this week</span>
+          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums" data-live-metric="true">—</p>
+          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-primary">Live published count</span>
         </article>
 
         <article class="rounded-lg bg-light-surface-container-lowest p-5 shadow-md border border-light-outline-variant/40 flex flex-col gap-2">
@@ -219,8 +219,8 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
               <span class="material-symbols-outlined text-title-md">group</span>
             </span>
           </div>
-          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums">48,920</p>
-          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-primary">+1,420 new players</span>
+          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums" data-live-metric="true">—</p>
+          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-primary">Live registered count</span>
         </article>
 
         <article class="rounded-lg bg-light-surface-container-lowest p-5 shadow-md border border-light-outline-variant/40 flex flex-col gap-2">
@@ -230,20 +230,11 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
               <span class="material-symbols-outlined text-title-md" style="font-variation-settings: &#39;FILL&#39; 1;">favorite</span>
             </span>
           </div>
-          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums">312,450</p>
-          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-on-surface-variant">1 like per account</span>
+          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums" data-live-metric="true">—</p>
+          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-on-surface-variant">Live likes count</span>
         </article>
 
-        <article class="rounded-lg bg-light-surface-container-lowest p-5 shadow-md border border-light-outline-variant/40 flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <span data-design-text-token="label-md" class="font-label text-label-md text-light-on-surface-variant">Total Comments</span>
-            <span class="w-9 h-9 rounded-full bg-section-purple/70 flex items-center justify-center text-navy-ink">
-              <span class="material-symbols-outlined text-title-md">chat_bubble</span>
-            </span>
-          </div>
-          <p data-design-text-token="headline-lg" class="font-headline text-headline-lg text-navy-ink tabular-nums">29,840</p>
-          <span data-design-text-token="body-sm" class="font-body text-body-sm text-light-tertiary">4 flagged for review</span>
-        </article>
+        
       </section>
 
       <!-- Game Management Table -->
@@ -309,11 +300,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
                 <td class="px-4 py-3 font-mono text-mono-md tabular-nums">11,240</td>
                 <td class="px-4 py-3"><span class="px-2.5 py-1 rounded-full bg-light-primary/15 text-light-primary font-label text-label-sm">Published</span></td>
                 <td class="px-4 py-3 text-right">
-                  <div class="inline-flex items-center gap-1.5">
-                    <a href="game.html" class="px-3 py-1 rounded-full bg-light-surface-container-low text-navy-ink font-label text-label-sm hover:bg-section-blue/60">Preview</a>
-                    <a href="admin.html#add-game" class="px-3 py-1 rounded-full bg-light-surface-container-low text-navy-ink font-label text-label-sm hover:bg-section-yellow/60">Edit</a>
-                    <button type="button" class="px-3 py-1 rounded-full bg-light-error-container text-light-on-error-container font-label text-label-sm">Delete</button>
-                  </div>
+                  
                 </td>
               </tr>
             </tbody>
