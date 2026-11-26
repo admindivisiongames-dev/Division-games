@@ -166,7 +166,7 @@ async function adminPage(){
   const main=$('main')||document.body;
   if(!currentUser||!isAdmin){
     const notice=document.createElement('section');notice.className='max-w-4xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink';
-    notice.innerHTML='<h2 class="font-display text-2xl mb-3">Admin access required</h2><p class="font-body mb-4">'+(!currentUser?'Sign in with your admin account to manage Division.':'This account does not have the admin role.')+'</p><a class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white" href="'+(!currentUser?'auth.html':'index.html')+'">'+(!currentUser?'Sign in':'Back to games')+'</a>';
+    notice.innerHTML='<h2 class="font-display text-2xl mb-3">Admin access required</h2><p class="font-body mb-4">'+(!currentUser?'Sign in with your admin account to manage Division.':'This account does not have the admin role.')+'</p><a class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white" href="'+(!currentUser?'auth.html?next=admin':'index.html')+'">'+(!currentUser?'Sign in':'Back to games')+'</a>';
     main.replaceChildren(notice);return;
   }
   const heading=$$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
