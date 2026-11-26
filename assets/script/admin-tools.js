@@ -31,6 +31,46 @@ if (!main || !current || current.email?.toLowerCase() !== adminEmail) {
     stats.append(statGrid,statsStatus);
     main.append(stats);
 
+    const categories=section('Game categories','Categories are stored in the database. New game categories are also created when an admin saves a game.');
+    const categoryForm=make('form','mt-4 flex flex-wrap gap-3');
+    const categoryInput=make('input','min-w-0 flex-1 rounded-xl border border-slate-300 p-3');categoryInput.placeholder='Category name';categoryInput.maxLength=40;categoryInput.required=true;
+    const categoryAdd=make('button','rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white','Add category');categoryAdd.type='submit';
+    const categoryStatus=make('p','mt-3 text-sm');
+    const categoryList=make('div','mt-4 grid gap-3 sm:grid-cols-2');
+    categoryForm.append(categoryInput,categoryAdd);categories.append(categoryForm,categoryStatus,categoryList);main.append(categories);
+    async function loadCategories(){
+      const result=await supabase.from('categories').select('id,name').order('name');
+      if(result.error){message(categoryStatus,result.error.message,true);return}
+      categoryList.replaceChildren();
+      if(!result.data?.length)categoryList.append(make('p','text-sm text-slate-500','No categories yet. They will be created when you add games.'));
+      (result.data||[]).forEach(cat=>{
+        const row=make('div','flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3');
+        row.append(make('span','text-sm font-semibold',cat.name));
+        const del=make('button','rounded-full border px-3 py-1.5 text-xs font-semibold','Delete');del.type='button';
+        del.addEventListener('click',async()=>{
+          const used=await supabase.from('games').select('id',{count:'exact',head:true}).eq('category',cat.id);
+          if(used.error){message(categoryStatus,used.error.message,true);return}
+          if((used.count||0)>0){message(categoryStatus,'This category is used by '+used.count+' game(s). Change those games first.',true);return}
+          if(!confirm('Delete category '+cat.name+'?'))return;
+          const result=await supabase.from('categories').delete().eq('id',cat.id);
+          if(result.error)message(categoryStatus,result.error.message,true);else{message(categoryStatus,'Category deleted.');await loadCategories()}
+        });
+        row.append(del);categoryList.append(row);
+      });
+      message(categoryStatus,(result.data||[]).length+' categories');
+    }
+    categoryForm.addEventListener('submit',async e=>{
+      e.preventDefault();const name=categoryInput.value.trim();
+      const id=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+      if(!id){message(categoryStatus,'Use letters or numbers for the category name.',true);return}
+      categoryAdd.disabled=true;
+      const result=await supabase.from('categories').upsert({id,name},{onConflict:'id'});
+      categoryAdd.disabled=false;
+      if(result.error)message(categoryStatus,result.error.message,true);
+      else{categoryInput.value='';message(categoryStatus,'Category saved.');await loadCategories()}
+    });
+    await loadCategories();
+
     const players = section('Player management','Search players and suspend or reactivate participation. Suspended players can still sign in but cannot post, like, save, or record new plays.');
     const playerSearch=make('input','mt-4 w-full max-w-lg rounded-xl border border-slate-300 p-3');
     playerSearch.type='search';playerSearch.placeholder='Search usernames or names…';playerSearch.setAttribute('aria-label','Search players');
