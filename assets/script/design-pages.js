@@ -181,6 +181,8 @@ async function gamePage(){
         fallback.style.cssText='position:absolute;bottom:10px;left:10px;z-index:5;padding:8px 12px;border-radius:999px;background:rgba(8,23,72,.88);color:white;font:12px sans-serif';player.append(fallback);
       }else window.open(gameUrl,'_blank','noopener,noreferrer');
       if(currentUser){
+        const {error:playEventError}=await supabase.from('game_plays').insert({game_id:game.id,user_id:currentUser.id});
+        if(playEventError)console.warn('Could not record game launch:',playEventError.message);
         const {data:settingsRow}=await supabase.from('profiles').select('settings').eq('id',currentUser.id).maybeSingle();
         if(settingsRow?.settings?.save_history!==false){
           const {error}=await supabase.from('play_history').upsert({user_id:currentUser.id,game_id:game.id,played_at:new Date().toISOString()});
@@ -192,35 +194,84 @@ async function gamePage(){
     launch.addEventListener('click',e=>{e.preventDefault();injectNotice('This game does not have a playable URL yet.')});
   }
 
-  // Real community comments for the selected game.
+  // Game discussion: comments, replies, editing, deletion and likes.
   const commentsSection=document.createElement('section');
   commentsSection.id='comments';
   commentsSection.className='rounded-3xl border border-line/60 bg-white p-6 shadow-sm space-y-4';
-  commentsSection.innerHTML='<div class="flex items-center justify-between gap-3"><h2 class="font-display text-2xl font-semibold">Comments <span data-comment-count class="text-base text-slate-500">0</span></h2><span class="text-sm text-slate-500">Newest first</span></div><div data-comment-list class="space-y-3"><p class="text-sm text-slate-500">Loading comments…</p></div><form data-comment-form class="space-y-3"><textarea name="body" maxlength="1200" required placeholder="Share a tip, review, or your experience…" class="w-full min-h-24 rounded-2xl border border-line p-4"></textarea><div class="flex flex-wrap items-center justify-between gap-3"><p data-comment-message class="text-sm text-slate-500">'+(currentUser?'Posting as '+esc(profile.username||currentUser.email||'Player'):'Sign in to post a comment.')+'</p><button class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit">Post comment</button></div></form>';
-  const gameMain=$('main');
-  gameMain?.append(commentsSection);
-  const commentList=$('[data-comment-list]',commentsSection);
-  const commentCount=$('[data-comment-count]',commentsSection);
-  const commentForm=$('[data-comment-form]',commentsSection);
-  const commentMessage=$('[data-comment-message]',commentsSection);
-  const loadGameComments=async()=>{
-    const {data,error}=await supabase.from('comments').select('id,body,user_id,created_at,profiles(username,avatar_url)').eq('game_id',game.id).order('created_at',{ascending:false});
-    if(error){commentList.textContent='Comments could not load right now.';return}
-    commentCount.textContent=String(data?.length||0);
-    if(!data?.length){commentList.innerHTML='<p class="text-sm text-slate-500">No comments yet. Be the first to comment.</p>';return}
-    commentList.innerHTML=data.map(c=>'<article class="rounded-2xl bg-slate-50 p-4" data-comment-id="'+esc(c.id)+'"><div class="flex items-center gap-3"><img class="h-9 w-9 rounded-full object-cover" src="'+esc(c.profiles?.avatar_url||'assets/icons/avatar.svg')+'" alt="" onerror="this.onerror=null;this.src=\'assets/icons/avatar.svg\'"><div class="min-w-0"><p class="font-semibold text-navy">'+esc(c.profiles?.username||'Player')+'</p><time class="text-xs text-slate-500">'+new Date(c.created_at).toLocaleString()+'</time></div></div><p data-comment-body class="mt-3 whitespace-pre-wrap break-words text-sm text-slate-700">'+esc(c.body)+'</p>'+(currentUser&&(c.user_id===currentUser.id||isAdmin)?'<div class="mt-3 flex gap-3"><button type="button" data-edit-comment="'+esc(c.id)+'" class="text-sm font-semibold text-navy">Edit</button><button type="button" data-delete-comment="'+esc(c.id)+'" class="text-sm font-semibold text-red-600">Delete</button></div>':'')+'</article>').join('');
-    $('[data-delete-comment]',commentList).forEach(button=>button.onclick=async()=>{if(!confirm('Delete this comment?'))return;const {error}=await supabase.from('comments').delete().eq('id',button.dataset.deleteComment);if(error)say(commentMessage,error.message);else await loadGameComments()});
-    $('[data-edit-comment]',commentList).forEach(button=>button.onclick=()=>{
-      const article=button.closest('article'),bodyNode=$('[data-comment-body]',article),original=bodyNode.textContent;
-      const editor=document.createElement('textarea');editor.maxLength=1200;editor.value=original;editor.className='mt-3 w-full rounded-xl border p-3 text-sm';
-      const save=document.createElement('button');save.type='button';save.textContent='Save edit';save.className='mt-2 mr-3 text-sm font-semibold text-navy';
-      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.className='mt-2 text-sm text-slate-500';
-      bodyNode.replaceWith(editor);button.parentElement.replaceChildren(save,cancel);
+  commentsSection.innerHTML='<div class="flex items-center justify-between gap-3"><h2 class="font-display text-2xl font-semibold">Comments <span data-comment-count class="text-base text-slate-500">0</span></h2><span class="text-sm text-slate-500">Newest first</span></div><form data-comment-form class="space-y-3"><textarea name="body" maxlength="1200" required placeholder="Share a tip, review, or your experience…" class="w-full min-h-24 rounded-2xl border border-line p-4"></textarea><div class="flex flex-wrap items-center justify-between gap-3"><p data-comment-message class="text-sm text-slate-500">'+(currentUser?'Posting as '+esc(profile.username||currentUser.email||'Player'):'Sign in to post a comment.')+'</p><div class="flex gap-2"><button type="button" data-cancel-reply hidden class="rounded-full border border-line px-4 py-2 text-sm">Cancel reply</button><button data-comment-submit class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit">Post comment</button></div></div></form><div data-comment-list class="space-y-3"><p class="text-sm text-slate-500">Loading comments…</p></div>';
+  const gameMain=$('main');gameMain?.append(commentsSection);
+  const commentList=$('[data-comment-list]',commentsSection),commentCount=$('[data-comment-count]',commentsSection),commentForm=$('[data-comment-form]',commentsSection),commentMessage=$('[data-comment-message]',commentsSection),commentInput=commentForm.elements.body,commentSubmit=$('[data-comment-submit]',commentForm),cancelReply=$('[data-cancel-reply]',commentForm);
+  let replyTo=null,commentRows=[],commentLikes=new Set(),commentLikeCounts=new Map();
+  const commentMessageText=(text,error=false)=>{say(commentMessage,text);commentMessage.dataset.error=error?'true':'false'};
+  const makeCommentNode=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n};
+  const action=(text,fn)=>{const b=makeCommentNode('button','text-sm font-semibold text-navy hover:underline',text);b.type='button';b.addEventListener('click',fn);return b};
+  const renderComment=(row,isReply)=>{
+    const card=makeCommentNode('article',isReply?'ml-6 sm:ml-12 border-l-2 border-line pl-4 py-3':'rounded-2xl bg-slate-50 p-4');
+    const header=makeCommentNode('div','flex items-center gap-3');
+    const img=makeCommentNode('img','h-9 w-9 rounded-full object-cover');img.alt='';img.src=row.profiles?.avatar_url||'assets/icons/avatar.svg';img.onerror=()=>{img.onerror=null;img.src='assets/icons/avatar.svg'};
+    const userBox=makeCommentNode('div','min-w-0');
+    userBox.append(makeCommentNode('p','font-semibold text-sm',row.profiles?.username||'Player'),makeCommentNode('time','text-xs text-slate-500',new Date(row.created_at).toLocaleString()+(row.updated_at&&row.updated_at!==row.created_at?' · edited':'')));
+    header.append(img,userBox);card.append(header,makeCommentNode('p','mt-3 whitespace-pre-wrap break-words text-sm text-slate-700',row.body));
+    const actions=makeCommentNode('div','mt-3 flex flex-wrap gap-3');
+    const liked=commentLikes.has(row.id),likes=commentLikeCounts.get(row.id)||0;
+    actions.append(action((liked?'♥ Liked':'♡ Like')+' ('+likes+')',async event=>{
+      if(!currentUser){location.href='auth.html?next='+encodeURIComponent('game.html?id='+game.id+'#comments');return}
+      const button=event.currentTarget;button.disabled=true;
+      const result=liked?await supabase.from('comment_likes').delete().eq('user_id',currentUser.id).eq('comment_id',row.id):await supabase.from('comment_likes').insert({user_id:currentUser.id,comment_id:row.id});
+      if(result.error)commentMessageText(result.error.message,true);else await loadGameComments();
+      button.disabled=false;
+    }));
+    if(!isReply)actions.append(action('Reply',()=>{
+      if(!currentUser){location.href='auth.html?next='+encodeURIComponent('game.html?id='+game.id+'#comments');return}
+      replyTo=row.id;commentInput.placeholder='Reply to '+(row.profiles?.username||'player')+'…';commentSubmit.textContent='Post reply';cancelReply.hidden=false;commentInput.focus();
+    }));
+    if(currentUser&&row.user_id===currentUser.id)actions.append(action('Edit',()=>{
+      const editor=makeCommentNode('textarea','mt-3 w-full rounded-xl border border-line p-3 text-sm');editor.maxLength=1200;editor.value=row.body;
+      const save=makeCommentNode('button','mt-2 mr-3 text-sm font-semibold text-navy','Save edit');save.type='button';
+      const cancel=makeCommentNode('button','mt-2 text-sm text-slate-500','Cancel');cancel.type='button';
+      card.querySelector('[data-comment-body]')?.remove();
+      const bodyNode=[...card.querySelectorAll('p')].find(p=>p.textContent===row.body);if(bodyNode)bodyNode.replaceWith(editor);else card.append(editor);
+      actions.replaceChildren(save,cancel);
       cancel.onclick=()=>loadGameComments();
-      save.onclick=async()=>{const body=editor.value.trim();if(!body)return;const {error}=await supabase.from('comments').update({body}).eq('id',button.dataset.editComment).eq('user_id',currentUser.id);if(error)say(commentMessage,error.message);else await loadGameComments()};
-    });
+      save.onclick=async()=>{const body=editor.value.trim();if(!body||body.length>1200){commentMessageText('Comment must be 1–1200 characters.',true);return}save.disabled=true;const result=await supabase.from('comments').update({body,updated_at:new Date().toISOString()}).eq('id',row.id).eq('user_id',currentUser.id);if(result.error)commentMessageText(result.error.message,true);else{commentMessageText('Comment updated.');await loadGameComments()}};
+    }));
+    if(currentUser&&(row.user_id===currentUser.id||isAdmin))actions.append(action('Delete',async()=>{
+      if(!confirm('Delete this comment'+(commentRows.some(r=>r.parent_id===row.id)?' and its replies':'')+'?'))return;
+      const result=await supabase.from('comments').delete().eq('id',row.id);
+      if(result.error)commentMessageText(result.error.message,true);else{commentMessageText('Comment deleted.');await loadGameComments()}
+    }));
+    card.append(actions);return card;
   };
-  commentForm.onsubmit=async e=>{e.preventDefault();if(!currentUser){location.href='auth.html?next='+encodeURIComponent('game.html?id='+game.id+'#comments');return}const body=commentForm.elements.body.value.trim();if(!body)return;const submit=commentForm.querySelector('button[type="submit"]');submit.disabled=true;const {error}=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body});submit.disabled=false;say(commentMessage,error?.message||'Comment posted.');if(!error){commentForm.reset();await loadGameComments()}};
+  const loadGameComments=async()=>{
+    const result=await supabase.from('comments').select('id,body,user_id,parent_id,created_at,updated_at,profiles(username,avatar_url)').eq('game_id',game.id).order('created_at',{ascending:false});
+    if(result.error){commentList.textContent='Comments could not load right now.';commentMessageText(result.error.message,true);return}
+    commentRows=result.data||[];commentCount.textContent=String(commentRows.length);commentLikes=new Set();commentLikeCounts=new Map();
+    const ids=commentRows.map(r=>r.id);
+    if(ids.length){
+      const all=await supabase.from('comment_likes').select('comment_id').in('comment_id',ids);
+      if(!all.error)(all.data||[]).forEach(l=>commentLikeCounts.set(l.comment_id,(commentLikeCounts.get(l.comment_id)||0)+1));
+      if(currentUser){const own=await supabase.from('comment_likes').select('comment_id').eq('user_id',currentUser.id).in('comment_id',ids);if(!own.error)commentLikes=new Set((own.data||[]).map(l=>l.comment_id))}
+    }
+    commentList.replaceChildren();
+    const roots=commentRows.filter(r=>!r.parent_id);
+    if(!roots.length)commentList.append(makeCommentNode('p','text-sm text-slate-500','No comments yet. Be the first to comment.'));
+    roots.forEach(root=>{
+      const group=makeCommentNode('div','space-y-2');group.append(renderComment(root,false));
+      commentRows.filter(r=>r.parent_id===root.id).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).forEach(reply=>group.append(renderComment(reply,true)));
+      commentList.append(group);
+    });
+    commentMessageText(currentUser?'Posting as '+esc(profile.username||currentUser.email||'Player'):'Sign in to post a comment.');
+  };
+  cancelReply.addEventListener('click',()=>{replyTo=null;commentInput.placeholder='Share a tip, review, or your experience…';commentSubmit.textContent='Post comment';cancelReply.hidden=true});
+  commentForm.onsubmit=async e=>{
+    e.preventDefault();if(!currentUser){location.href='auth.html?next='+encodeURIComponent('game.html?id='+game.id+'#comments');return}
+    const body=commentInput.value.trim();if(!body||body.length>1200){commentMessageText('Comment must be 1–1200 characters.',true);return}
+    commentSubmit.disabled=true;commentMessageText(replyTo?'Posting reply…':'Posting comment…');
+    const result=await supabase.from('comments').insert({game_id:game.id,user_id:currentUser.id,body,parent_id:replyTo});
+    commentSubmit.disabled=false;
+    if(result.error){commentMessageText(result.error.message,true);return}
+    commentInput.value='';replyTo=null;commentInput.placeholder='Share a tip, review, or your experience…';commentSubmit.textContent='Post comment';cancelReply.hidden=true;commentMessageText('Posted.');await loadGameComments();
+  };
   await loadGameComments();
 
 }
