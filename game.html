@@ -251,15 +251,15 @@ if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <button type="button" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent-coral text-light-on-primary shadow-md hover:-translate-y-0.5 transition-transform duration-state-change">
+            <button type="button" data-like aria-label="Like game" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent-coral text-light-on-primary shadow-md hover:-translate-y-0.5 transition-transform duration-state-change">
               <span class="material-symbols-outlined text-title-md" style="font-variation-settings: &#39;FILL&#39; 1;">favorite</span>
               
             </button>
             
-            <button type="button" class="w-10 h-10 rounded-full bg-light-surface-container-low text-navy-ink hover:bg-section-yellow/60 flex items-center justify-center" aria-label="Save to Favourites">
+            <button type="button" class="w-10 h-10 rounded-full bg-light-surface-container-low text-navy-ink hover:bg-section-yellow/60 flex items-center justify-center" aria-label="Save to Favourites" data-fav>
               <span class="material-symbols-outlined text-title-md">bookmark</span>
             </button>
-            <button type="button" class="w-10 h-10 rounded-full bg-light-surface-container-low text-navy-ink hover:bg-section-blue/60 flex items-center justify-center" aria-label="Fullscreen">
+            <button type="button" class="w-10 h-10 rounded-full bg-light-surface-container-low text-navy-ink hover:bg-section-blue/60 flex items-center justify-center" aria-label="Fullscreen" data-fullscreen>
               <span class="material-symbols-outlined text-title-md">fullscreen</span>
             </button>
           </div>
