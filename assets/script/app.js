@@ -13,7 +13,7 @@ function render(){
  const term=search.value.trim().toLowerCase();
  const filtered=allGames.filter(g=>{
   const category=String(g.category||'').toLowerCase();
-  const categoryMatch=activeCategory==='all'||category===activeCategory||((g.tags||[]).map(x=>String(x).toLowerCase()).includes(activeCategory));
+  const categoryMatch=activeCategory==='all'||category===activeCategory||(activeCategory==='multiplayer'&&g.multiplayer===true)||((g.tags||[]).map(x=>String(x).toLowerCase()).includes(activeCategory));
   const text=[g.title,g.description,g.category,...(g.tags||[])].join(' ').toLowerCase();
   return categoryMatch&&(!term||text.includes(term));
  });
