@@ -231,7 +231,7 @@ async function profilePage(){
   const profileImages=Array.from(document.querySelectorAll('img')).filter(img=>/avatar|profile picture/i.test(img.alt));
   const mainAvatar=profileImages.find(img=>/profile picture/i.test(img.alt))||profileImages[0];
   profileImages.forEach(img=>{if(profile.avatar_url){img.src=profile.avatar_url;img.alt='Your profile picture'}});
-  if(mainAvatar&&!mainAvatar.dataset.uploadControl){
+  if(false&&mainAvatar&&!mainAvatar.dataset.uploadControl){
     mainAvatar.dataset.uploadControl='true';
     const wrapper=document.createElement('div');
     wrapper.className='flex flex-col items-center gap-2 shrink-0';
@@ -268,6 +268,25 @@ async function profilePage(){
     });
     wrapper.append(choose,picker,status);
   }
+  const photo=$('[data-profile-photo]');
+  if(photo&&profile.avatar_url)photo.src=profile.avatar_url;
+  const usernameInput=$('[data-profile-username]');if(usernameInput)usernameInput.value=name;
+  const avatarInput=$('[data-avatar-file]'),avatarMessage=$('[data-avatar-message]');
+  if(avatarInput)avatarInput.addEventListener('change',async()=>{
+    const file=avatarInput.files&&avatarInput.files[0];if(!file)return;
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){say(avatarMessage,'Choose a JPG, PNG or WebP image.');avatarInput.value='';return}
+    if(file.size>3*1024*1024){say(avatarMessage,'Image must be 3 MB or smaller.');avatarInput.value='';return}
+    say(avatarMessage,'Uploading photo…');
+    try{const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const path=currentUser.id+'/avatar.'+ext;
+      const up=await supabase.storage.from('avatars').upload(path,file,{cacheControl:'3600',upsert:true,contentType:file.type});if(up.error)throw up.error;
+      const url=supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl+'?v='+Date.now();
+      const saved=await supabase.from('profiles').update({avatar_url:url}).eq('id',currentUser.id);if(saved.error)throw saved.error;
+      profile.avatar_url=url;if(photo)photo.src=url;profileImages.forEach(img=>img.src=url);applyProfileAvatar(url);say(avatarMessage,'Profile photo updated.');
+    }catch(err){say(avatarMessage,err.message||'Upload failed. Check your connection and try again.')}finally{avatarInput.value=''}
+  });
+  const profileForm=$('[data-profile-form]');if(profileForm)profileForm.onsubmit=async e=>{e.preventDefault();const username=usernameInput.value.trim();if(!username)return;
+    const save=await supabase.from('profiles').update({username}).eq('id',currentUser.id);say($('[data-profile-message]',profileForm),save.error?.message||'Profile saved.');if(!save.error){profile.username=username;document.querySelectorAll('a[href="profile.html"] span').forEach(n=>n.textContent=username);document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=username)}}
+  document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=name});
   document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=name});
   const signout=$$('[data-signout],button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
   const all=await getGames().catch(()=>[]);
@@ -281,8 +300,7 @@ async function profilePage(){
     if(!grid.children.length)grid.innerHTML='<p class="text-light-outline">No games here yet.</p>';
     container.append(grid);
   }
-  const settings=$$('h2,h3').find(h=>/account settings/i.test(h.textContent));
-  if(settings){const section=settings.closest('section')||settings.parentElement.parentElement;const form=document.createElement('form');form.className='mt-4 space-y-3';form.innerHTML='<label class="block text-sm">Username<input name="username" maxlength="24" required class="block mt-2 w-full rounded-xl border p-3" value="'+esc(name)+'"></label><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save profile</button><p data-msg class="text-sm"></p>';section.append(form);form.onsubmit=async e=>{e.preventDefault();const username=form.elements.username.value.trim();const {error}=await supabase.from('profiles').update({username}).eq('id',currentUser.id);say($('[data-msg]',form),error?.message||'Profile saved.');if(!error)location.reload()}}
+
 }
 
 async function adminPage(){
