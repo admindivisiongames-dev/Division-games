@@ -4,7 +4,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const say = (node, message) => { if (node) node.textContent = message; };
 const currentUser = await user().catch(()=>null);
-const profileResult = currentUser ? await supabase.from('profiles').select('username,role,avatar_url,created_at').eq('id',currentUser.id).maybeSingle() : {data:null};
+const profileResult = currentUser ? await supabase.from('profiles').select('username,role,avatar_url,created_at,first_name,last_name,bio,suspended').eq('id',currentUser.id).maybeSingle() : {data:null};
 const profile = profileResult.data || {};
 const ADMIN_EMAIL = 'admin.division.games@gmail.com';
 const isAdmin = profile.role === 'admin' && currentUser?.email?.toLowerCase() === ADMIN_EMAIL;
@@ -225,83 +225,118 @@ async function gamePage(){
 
 }
 async function profilePage(){
-  if(!currentUser){const main=$('main');if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';return}
+  const main=$('main');
+  const requested=new URLSearchParams(location.search).get('username');
+  let target=profile;
+  const viewingOther=!!requested&&requested.toLowerCase()!==String(profile.username||'').toLowerCase();
+  if(viewingOther){
+    const result=await supabase.from('profiles').select('username,first_name,last_name,bio,avatar_url,created_at').eq('username',requested).maybeSingle();
+    if(result.error||!result.data){
+      if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-white"><h1 class="font-display text-3xl mb-3">Player not found</h1><p>This public profile does not exist or is unavailable.</p><a href="index.html" class="inline-block mt-5 underline">Back to games</a></section>';
+      return;
+    }
+    target=result.data;
+  }
+  if(viewingOther){
+    const emailNode=$('[data-profile-email]');if(emailNode)emailNode.textContent='Public player profile';
+    const usernameHeading=$$('h1').find(h=>/your profile/i.test(h.textContent));if(usernameHeading)usernameHeading.textContent=target.username||'Player';
+    const avatar=main?.querySelector('img[alt*="Profile"],img[alt*="profile"],img[alt*="avatar"]');
+    if(avatar&&target.avatar_url)avatar.src=target.avatar_url;
+    const settingsSection=$$('section').find(s=>/account settings/i.test(s.textContent));if(settingsSection)settingsSection.hidden=true;
+    const signout=$$('[data-signout]')[0];if(signout)signout.hidden=true;
+    const intro=main?.querySelector('section');
+    if(intro){
+      let bio=intro.querySelector('[data-public-bio]');
+      if(!bio){bio=document.createElement('p');bio.dataset.publicBio='true';bio.className='mt-3 text-sm text-slate-600';intro.append(bio)}
+      const fullName=[target.first_name,target.last_name].filter(Boolean).join(' ');
+      bio.textContent=(fullName?fullName+' · ':'')+(target.bio||'No bio added yet.')+' · Joined '+new Date(target.created_at).toLocaleDateString();
+    }
+    const sections=$$('main > section');
+    sections.filter(s=>/favourite games|recently played/i.test(s.textContent)).forEach(s=>s.hidden=true);
+    return;
+  }
+  if(!currentUser){
+    if(main)main.innerHTML='<section class="max-w-3xl mx-auto my-12 p-8 rounded-3xl bg-light-surface-container-low text-navy-ink"><h1 class="font-display text-3xl mb-3">Your Division profile</h1><p class="mb-5">Sign in to see your saved games and activity.</p><a href="auth.html" class="inline-block px-5 py-3 rounded-full bg-navy-ink text-white">Sign in</a></section>';
+    return;
+  }
   const name=profile.username||currentUser.email?.split('@')[0]||'Player';
   const emailNode=$('[data-profile-email]');if(emailNode)emailNode.textContent=currentUser.email||'';
   const profileImages=Array.from(document.querySelectorAll('img')).filter(img=>/avatar|profile picture/i.test(img.alt));
-  const mainAvatar=profileImages.find(img=>/profile picture/i.test(img.alt))||profileImages[0];
   profileImages.forEach(img=>{if(profile.avatar_url){img.src=profile.avatar_url;img.alt='Your profile picture'}});
-  if(false&&mainAvatar&&!mainAvatar.dataset.uploadControl){
-    mainAvatar.dataset.uploadControl='true';
-    const wrapper=document.createElement('div');
-    wrapper.className='flex flex-col items-center gap-2 shrink-0';
-    mainAvatar.parentElement.insertBefore(wrapper,mainAvatar);
-    wrapper.append(mainAvatar);
-    mainAvatar.className='w-20 h-20 rounded-xl object-cover shadow-md border-2 border-section-turquoise';
-    const picker=document.createElement('input');
-    picker.type='file';picker.accept='image/png,image/jpeg,image/webp';picker.hidden=true;
-    const choose=document.createElement('button');
-    choose.type='button';choose.textContent='Change photo';
-    choose.className='px-3 py-1.5 rounded-full bg-navy-ink text-white text-xs font-label';
-    choose.addEventListener('click',()=>picker.click());
-    const status=document.createElement('p');status.className='text-xs text-light-outline text-center';status.setAttribute('aria-live','polite');
-    picker.addEventListener('change',async()=>{
-      const file=picker.files?.[0];if(!file)return;
-      if(!['image/jpeg','image/png','image/webp'].includes(file.type)){status.textContent='Choose a JPG, PNG or WebP image.';picker.value='';return}
-      if(file.size>3*1024*1024){status.textContent='Image must be 3 MB or smaller.';picker.value='';return}
-      choose.disabled=true;status.textContent='Uploading photo…';
-      try{
-        const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-        const path=currentUser.id+'/avatar.'+ext;
-        const {error:uploadError}=await supabase.storage.from('avatars').upload(path,file,{cacheControl:'3600',upsert:true,contentType:file.type});
-        if(uploadError)throw uploadError;
-        const {data}=supabase.storage.from('avatars').getPublicUrl(path);
-        const avatarUrl=data.publicUrl+'?v='+Date.now();
-        const {error:profileError}=await supabase.from('profiles').update({avatar_url:avatarUrl}).eq('id',currentUser.id);
-        if(profileError)throw profileError;
-        profile.avatar_url=avatarUrl;
-        profileImages.forEach(img=>{img.src=avatarUrl;img.alt='Your profile picture'});
-        applyProfileAvatar(avatarUrl);
-        status.textContent='Profile photo updated.';
-      }catch(error){status.textContent=error.message||'Could not upload photo. Please try again.'}
-      finally{choose.disabled=false;picker.value=''}
-    });
-    wrapper.append(choose,picker,status);
-  }
-  const photo=$('[data-profile-photo]');
-  if(photo&&profile.avatar_url)photo.src=profile.avatar_url;
-  const usernameInput=$('[data-profile-username]');if(usernameInput)usernameInput.value=name;
+  const photo=$('[data-profile-photo]');if(photo&&profile.avatar_url)photo.src=profile.avatar_url;
+  const usernameInput=$('[data-profile-username]');
+  if(usernameInput)usernameInput.value=name;
+  const firstInput=$('[data-profile-first-name]');if(firstInput)firstInput.value=profile.first_name||'';
+  const lastInput=$('[data-profile-last-name]');if(lastInput)lastInput.value=profile.last_name||'';
+  const bioInput=$('[data-profile-bio]');if(bioInput)bioInput.value=profile.bio||'';
+
   const avatarInput=$('[data-avatar-file]'),avatarMessage=$('[data-avatar-message]');
   if(avatarInput)avatarInput.addEventListener('change',async()=>{
     const file=avatarInput.files&&avatarInput.files[0];if(!file)return;
     if(!['image/jpeg','image/png','image/webp'].includes(file.type)){say(avatarMessage,'Choose a JPG, PNG or WebP image.');avatarInput.value='';return}
     if(file.size>3*1024*1024){say(avatarMessage,'Image must be 3 MB or smaller.');avatarInput.value='';return}
+    const choose=avatarInput.closest('label');if(choose)choose.classList.add('opacity-60');
     say(avatarMessage,'Uploading photo…');
-    try{const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const path=currentUser.id+'/avatar.'+ext;
+    try{
+      const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+      const path=currentUser.id+'/avatar.'+ext;
       const up=await supabase.storage.from('avatars').upload(path,file,{cacheControl:'3600',upsert:true,contentType:file.type});if(up.error)throw up.error;
       const url=supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl+'?v='+Date.now();
       const saved=await supabase.from('profiles').update({avatar_url:url}).eq('id',currentUser.id);if(saved.error)throw saved.error;
-      profile.avatar_url=url;if(photo)photo.src=url;profileImages.forEach(img=>img.src=url);applyProfileAvatar(url);say(avatarMessage,'Profile photo updated.');
-    }catch(err){say(avatarMessage,err.message||'Upload failed. Check your connection and try again.')}finally{avatarInput.value=''}
+      profile.avatar_url=url;if(photo)photo.src=url;profileImages.forEach(img=>{img.src=url;img.alt='Your profile picture'});applyProfileAvatar(url);say(avatarMessage,'Profile photo updated.');
+    }catch(err){say(avatarMessage,err.message||'Upload failed. Check your connection and try again.')}
+    finally{avatarInput.value='';if(choose)choose.classList.remove('opacity-60')}
   });
-  const profileForm=$('[data-profile-form]');if(profileForm)profileForm.onsubmit=async e=>{e.preventDefault();const username=usernameInput.value.trim();if(!username)return;
-    const save=await supabase.from('profiles').update({username}).eq('id',currentUser.id);say($('[data-profile-message]',profileForm),save.error?.message||'Profile saved.');if(!save.error){profile.username=username;document.querySelectorAll('a[href="profile.html"] span').forEach(n=>n.textContent=username);document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=username)}}
-  document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=name});
-  document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=name});
-  const signout=$$('[data-signout],button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));if(signout)signout.onclick=async()=>{await supabase.auth.signOut();location.href='index.html'};
+  let removeButton=$('[data-avatar-remove]');
+  if(photo&&!removeButton){
+    removeButton=document.createElement('button');removeButton.type='button';removeButton.dataset.avatarRemove='true';removeButton.textContent='Remove photo';removeButton.className='ml-2 rounded-full border border-line px-4 py-2 text-sm font-semibold';
+    photo.parentElement?.append(removeButton);
+  }
+  if(removeButton)removeButton.addEventListener('click',async()=>{
+    removeButton.disabled=true;say(avatarMessage,'Removing photo…');
+    const saved=await supabase.from('profiles').update({avatar_url:null}).eq('id',currentUser.id);
+    if(saved.error)say(avatarMessage,saved.error.message);
+    else{profile.avatar_url=null;const fallback='assets/icons/avatar.svg';if(photo)photo.src=fallback;profileImages.forEach(img=>img.src=fallback);applyProfileAvatar(fallback);say(avatarMessage,'Profile photo removed.')}
+    removeButton.disabled=false;
+  });
+
+  const profileForm=$('[data-profile-form]');
+  if(profileForm)profileForm.onsubmit=async e=>{
+    e.preventDefault();
+    const username=usernameInput?.value.trim()||'';
+    const first_name=firstInput?.value.trim()||'';
+    const last_name=lastInput?.value.trim()||'';
+    const bio=bioInput?.value.trim()||'';
+    if(!username){say($('[data-profile-message]',profileForm),'Username is required.');return}
+    if(username.length<3||username.length>24||!/^[a-zA-Z0-9_]+$/.test(username)){say($('[data-profile-message]',profileForm),'Username must be 3–24 letters, numbers or underscores.');return}
+    if(bio.length>240){say($('[data-profile-message]',profileForm),'Bio must be 240 characters or less.');return}
+    const saveButton=profileForm.querySelector('button[type="submit"]');if(saveButton)saveButton.disabled=true;
+    say($('[data-profile-message]',profileForm),'Saving profile…');
+    const save=await supabase.from('profiles').update({username,first_name,last_name,bio}).eq('id',currentUser.id);
+    say($('[data-profile-message]',profileForm),save.error?.message||'Profile saved.');
+    if(!save.error){
+      Object.assign(profile,{username,first_name,last_name,bio});
+      document.querySelectorAll('a[href="profile.html"] span').forEach(n=>n.textContent=username);
+      document.querySelectorAll('h1').forEach(h=>{if(/your profile/i.test(h.textContent))h.textContent=username});
+    }
+    if(saveButton)saveButton.disabled=false;
+  };
+  const signout=$$('[data-signout],button,a').find(n=>n.matches('[data-signout]')||/sign out|log out/i.test(n.textContent));
+  if(signout)signout.onclick=async()=>{signout.disabled=true;const result=await supabase.auth.signOut();if(result.error){signout.disabled=false;say($('[data-profile-message]'),result.error.message)}else location.href='index.html'};
   const all=await getGames().catch(()=>[]);
   for(const [table,label] of [['favorites','Favourite Games'],['play_history','Recently Played']]){
     const heading=$$('h2,h3').find(h=>h.textContent.toLowerCase().includes(label.toLowerCase()));
     if(!heading)continue;
     const container=heading.closest('section')||heading.parentElement.parentElement;
-    let grid=container.querySelector('.grid');if(!grid){grid=document.createElement('div');container.append(grid)}grid.className='grid grid-cols-2 md:grid-cols-3 gap-4 mt-4';grid.replaceChildren();
-    const {data}=await supabase.from(table).select('game_id'+(table==='play_history'?',played_at':'')).eq('user_id',currentUser.id).order(table==='play_history'?'played_at':'created_at',{ascending:false}).limit(12);
+    let grid=container.querySelector('.grid');if(!grid){grid=document.createElement('div');container.append(grid)}
+    grid.className='grid grid-cols-2 md:grid-cols-3 gap-4 mt-4';grid.replaceChildren();
+    const {data,error}=await supabase.from(table).select('game_id'+(table==='play_history'?',played_at':'')).eq('user_id',currentUser.id).order(table==='play_history'?'played_at':'created_at',{ascending:false}).limit(12);
+    if(error){grid.append(makeProfileNotice(error.message));continue}
     (data||[]).forEach(row=>{const g=all.find(x=>x.id===row.game_id);if(g)grid.append(gameCard(g))});
-    if(!grid.children.length)grid.innerHTML='<p class="text-light-outline">No games here yet.</p>';
-    container.append(grid);
+    if(!grid.children.length)grid.append(makeProfileNotice('No games here yet.'));
   }
-
 }
+function makeProfileNotice(text){const p=document.createElement('p');p.className='text-light-outline';p.textContent=text;return p;}
 
 async function adminPage(){
   const main=$('main')||document.body;
