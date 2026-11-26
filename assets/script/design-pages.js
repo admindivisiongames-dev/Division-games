@@ -287,9 +287,9 @@ async function adminPage(){
     if(tbody){
       const rows=await Promise.all(gs.map(async g=>{
         const {count}=await supabase.from('likes').select('*',{count:'exact',head:true}).eq('game_id',g.id);
-        return '<tr class="border-b"><td class="px-4 py-3"><b>'+esc(g.title)+'</b><small class="block text-light-outline">'+esc(g.id)+'</small></td><td class="px-4 py-3">'+esc(g.category)+'</td><td class="px-4 py-3">—</td><td class="px-4 py-3">'+(count||0)+'</td><td class="px-4 py-3">'+(g.published?'Published':'Hidden')+'</td><td class="px-4 py-3 text-right"><button type="button" data-edit="'+esc(g.id)+'" class="px-3 py-1 rounded-full border">Edit</button> <button type="button" data-delete="'+esc(g.id)+'" class="px-3 py-1 rounded-full bg-light-error-container text-light-error">Delete</button></td></tr>';
+        return '<tr class="border-b"><td class="px-4 py-3"><b>'+esc(g.title)+'</b><small class="block text-light-outline">'+esc(g.id)+'</small></td><td class="px-4 py-3">'+esc(g.category)+'</td><td class="px-4 py-3">'+(count||0)+'</td><td class="px-4 py-3">'+(g.published?'Published':'Hidden')+'</td><td class="px-4 py-3 text-right"><button type="button" data-edit="'+esc(g.id)+'" class="px-3 py-1 rounded-full border">Edit</button> <button type="button" data-delete="'+esc(g.id)+'" class="px-3 py-1 rounded-full bg-light-error-container text-light-error">Delete</button></td></tr>';
       }));
-      tbody.innerHTML=rows.join('')||'<tr><td colspan="6" class="p-5">No games yet.</td></tr>';
+      tbody.innerHTML=rows.join('')||'<tr><td colspan="5" class="p-5">No games yet.</td></tr>';
     }
     list.innerHTML=gs.map(g=>'<article class="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border"><div><b class="text-navy-ink">'+esc(g.title)+'</b><p class="text-sm text-light-outline">'+esc(g.id)+' · '+esc(g.category)+' · '+(g.published?'Published':'Hidden')+'</p></div><div class="flex gap-2"><button type="button" data-edit="'+esc(g.id)+'" class="px-4 py-2 rounded-full border">Edit</button><button type="button" data-delete="'+esc(g.id)+'" class="px-4 py-2 rounded-full bg-light-error-container text-light-error">Delete</button></div></article>').join('')||'<p>No games found.</p>';
     $$('[data-edit]',document).forEach(b=>b.onclick=()=>{
@@ -305,6 +305,11 @@ async function adminPage(){
     });
   };
   form.onsubmit=async e=>{e.preventDefault();const f=form.elements,id=f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),rec={id,title:f.title.value.trim(),category:f.category.value.trim().toLowerCase(),symbol:f.symbol.value.trim()||'✦',game_url:f.game_url.value.trim()||null,image_url:f.image_url.value.trim()||null,cover_color:f.cover_color.value.trim()||'cover-1',description:f.description.value.trim(),instructions:f.instructions.value.trim(),published:f.published.checked};const old=form.dataset.editing;const result=old?await supabase.from('games').update(rec).eq('id',old):await supabase.from('games').insert(rec);say($('[data-msg]',form),result.error?.message||'Game saved.');if(!result.error){delete form.dataset.editing;form.reset();f.cover_color.value='cover-1';f.published.checked=true;refresh()}};
+  const adminSearch=$('input[type="search"]');
+  if(adminSearch)adminSearch.addEventListener('input',()=>{
+    const term=adminSearch.value.trim().toLowerCase();
+    $$('table tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(term));
+  });
   await refresh();
 }
 const path=location.pathname.split('/').pop();
