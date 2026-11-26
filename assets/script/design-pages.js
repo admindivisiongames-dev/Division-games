@@ -43,8 +43,8 @@ function wireNavigation(){
   if(currentUser){
     navLinks.filter(a=>/sign in|log in|create account/i.test(a.textContent)).forEach(a=>{a.href='profile.html';a.textContent=profile.username||'My Profile'});
     $('a[href="profile.html"]').forEach(a=>{
-      const textNode=Array.from(a.childNodes).find(n=>n.nodeType===3&&n.textContent.trim());
-      if(textNode)textNode.textContent=profile.username||'My Profile';
+      const label=a.querySelector('span');
+      if(label)label.textContent=profile.username||'My Profile';
       else if(!a.querySelector('img'))a.textContent=profile.username||'My Profile';
       const img=a.querySelector('img');if(img&&profile.avatar_url)img.src=profile.avatar_url;
     });
@@ -232,9 +232,9 @@ async function adminPage(){
   }
   document.body.style.visibility='visible';
   const metricQueries=[
-    ['Total Games',supabase.from('games').select('id',{count:'exact',head:true}).eq('published',true)],
-    ['Registered Users',supabase.from('profiles').select('id',{count:'exact',head:true})],
-    ['Total Likes',supabase.from('likes').select('id',{count:'exact',head:true})]
+    ['Total Games',supabase.from('games').select('*',{count:'exact',head:true}).eq('published',true)],
+    ['Registered Users',supabase.from('profiles').select('*',{count:'exact',head:true})],
+    ['Total Likes',supabase.from('likes').select('*',{count:'exact',head:true})]
   ];
   const metricResults=await Promise.all(metricQueries.map(async([label,query])=>({label,...await query})));
   metricResults.forEach(({label,count,error})=>{
@@ -245,7 +245,7 @@ async function adminPage(){
   const heading=$('h1,h2,h3').find(h=>/game management/i.test(h.textContent));
   const section=heading?.closest('section')||heading?.parentElement?.parentElement||main;
   const form=document.createElement('form');form.id='add-game';form.className='my-6 p-5 md:p-7 rounded-3xl bg-light-surface-container-low border border-light-outline-variant space-y-3';
-  form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="image_url" type="url" placeholder="Game image URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><label class="flex items-center gap-2"><input name="is_demo" type="checkbox"> Demo listing</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
+  form.innerHTML='<h3 class="font-display text-2xl text-navy-ink">Add or edit a game</h3><div class="grid md:grid-cols-2 gap-3"><input name="id" required placeholder="Game ID (slug)" class="p-3 rounded-xl border"><input name="title" required placeholder="Game title" class="p-3 rounded-xl border"><input name="category" required placeholder="Category" class="p-3 rounded-xl border"><input name="symbol" placeholder="Cover symbol" maxlength="8" class="p-3 rounded-xl border"><input name="game_url" type="url" placeholder="Playable game URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="image_url" type="url" placeholder="Game image URL (https://...)" class="p-3 rounded-xl border md:col-span-2"><input name="cover_color" placeholder="Cover style class" value="cover-1" class="p-3 rounded-xl border md:col-span-2"><textarea name="description" placeholder="Description" class="p-3 rounded-xl border md:col-span-2"></textarea><textarea name="instructions" placeholder="Instructions" class="p-3 rounded-xl border md:col-span-2"></textarea></div><label class="flex items-center gap-2"><input name="published" type="checkbox" checked> Published</label><div class="flex gap-3"><button class="px-5 py-3 rounded-full bg-navy-ink text-white">Save game</button><button type="reset" class="px-5 py-3 rounded-full bg-white border">Clear</button></div><p data-msg class="text-sm"></p>';
   section.prepend(form);
   const list=document.createElement('div');list.className='space-y-3 mt-5';list.dataset.adminGames='true';form.after(list);
   const refresh=async()=>{
@@ -263,7 +263,7 @@ async function adminPage(){
     $$('[data-edit]',document).forEach(b=>b.onclick=()=>{
       const g=gs.find(x=>x.id===b.dataset.edit);if(!g)return;
       Object.keys(g).forEach(k=>{if(form.elements[k]&&form.elements[k].type!=='checkbox')form.elements[k].value=g[k]??''});
-      form.elements.published.checked=!!g.published;form.elements.is_demo.checked=!!g.is_demo;form.dataset.editing=g.id;form.scrollIntoView({behavior:'smooth',block:'start'});
+      form.elements.published.checked=!!g.published;form.dataset.editing=g.id;form.scrollIntoView({behavior:'smooth',block:'start'});
     });
     $$('[data-delete]',document).forEach(b=>b.onclick=async()=>{
       if(confirm('Delete this game? Related activity may also be affected.')){
